@@ -1,5 +1,5 @@
 import React from "react";
-import { useAuthStore } from "../store/auth.store";
+import { useAuthStore } from "../stores/auth.store";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {

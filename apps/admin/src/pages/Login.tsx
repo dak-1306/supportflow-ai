@@ -1,26 +1,35 @@
-import React, { useState } from "react";
-import { api } from "../api/client";
-import { useAuthStore } from "../store/auth.store";
-import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useLoginMutation } from "../features/auth/hooks/use-auth.ts";
+
+import { Button } from "@supportflow/ui/src/components/ui/button"; // Import thẳng component cụ thể
+
+// Định nghĩa validation schema bằng Zod đồng bộ với Backend
+const loginSchema = z.object({
+  email: z.string().email("Email không đúng định dạng"),
+  password: z.string().min(6, "Mật khẩu phải tối thiểu 6 ký tự"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const navigate = useNavigate();
+  const loginMutation = useLoginMutation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    try {
-      const res = await api.post("/auth/login", { email, password });
-      setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
-      navigate("/dashboard");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Đăng nhập thất bại");
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const onSubmit = (data: LoginFormValues) => {
+    loginMutation.mutate(data);
   };
+
+  const serverError = loginMutation.error as any;
 
   return (
     <div
@@ -33,7 +42,7 @@ export default function Login() {
       }}
     >
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}
         style={{
           width: 320,
           padding: 24,
@@ -42,41 +51,60 @@ export default function Login() {
         }}
       >
         <h2>SupportFlow Admin</h2>
-        {error && <p style={{ color: "red" }}>{error}</p>}
+
+        {/* Error State từ Server */}
+        {loginMutation.isError && (
+          <p style={{ color: "red", fontSize: "14px" }}>
+            {serverError?.response?.data?.message || "Đăng nhập thất bại"}
+          </p>
+        )}
+
         <div style={{ marginBottom: 12 }}>
-          <label>Email</label>
+          <label style={{ fontSize: "14px", fontWeight: "bold" }}>Email</label>
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: "100%", padding: 8, marginTop: 4 }}
+            {...register("email")}
+            style={{
+              width: "100%",
+              padding: 8,
+              marginTop: 4,
+              boxSizing: "border-box",
+            }}
           />
+          {/* Validation Error từ Client */}
+          {errors.email && (
+            <p style={{ color: "red", fontSize: "12px", margin: "4px 0 0" }}>
+              {errors.email.message}
+            </p>
+          )}
         </div>
+
         <div style={{ marginBottom: 16 }}>
-          <label>Mật khẩu</label>
+          <label style={{ fontSize: "14px", fontWeight: "bold" }}>
+            Mật khẩu
+          </label>
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: "100%", padding: 8, marginTop: 4 }}
+            {...register("password")}
+            style={{
+              width: "100%",
+              padding: 8,
+              marginTop: 4,
+              boxSizing: "border-box",
+            }}
           />
+          {/* Validation Error từ Client */}
+          {errors.password && (
+            <p style={{ color: "red", fontSize: "12px", margin: "4px 0 0" }}>
+              {errors.password.message}
+            </p>
+          )}
         </div>
-        <button
-          type="submit"
-          style={{
-            width: "100%",
-            padding: 10,
-            background: "#0070f3",
-            color: "#fff",
-            border: "none",
-            borderRadius: 4,
-            cursor: "pointer",
-          }}
-        >
-          Đăng nhập
-        </button>
+
+        <Button disabled={loginMutation.isPending}>
+          {/* Loading State */}
+          {loginMutation.isPending ? "Đang xử lý..." : "Đăng nhập"}
+        </Button>
       </form>
     </div>
   );

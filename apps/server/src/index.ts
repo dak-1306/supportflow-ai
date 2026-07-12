@@ -1,9 +1,9 @@
 import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
-import authRoutes from "./routes/auth.route";
-import { User } from "./models/User";
+import authRoutes from "./modules/auth/routes/auth.route";
+import { errorHandler } from "./middlewares/error.middleware";
+import { connectDatabase } from "./config/database";
 
 dotenv.config();
 
@@ -17,52 +17,18 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 
 app.get("/health", (req, res) => {
-  res.json({ status: "OK", timestamp: new Date() });
+  res.json({ success: true, message: "OK", data: { timestamp: new Date() } });
 });
 
-import { Workspace } from "./models/Workspace"; // Thêm dòng import này ở trên cùng file
+// Global Error Handler
+app.use(errorHandler);
 
-// Thay thế hàm seedAdmin cũ bằng hàm này:
-async function seedAdmin() {
-  // 1. Kiểm tra hoặc tạo một Workspace mặc định cho MVP
-  let defaultWorkspace = await Workspace.findOne({
-    name: "SupportFlow Default",
+// Bootstrap App
+const bootstrap = async () => {
+  await connectDatabase();
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
   });
-  if (!defaultWorkspace) {
-    defaultWorkspace = await Workspace.create({
-      name: "SupportFlow Default",
-      logo: "",
-      status: "active",
-    });
-    console.log("💡 Seeded default workspace.");
-  }
+};
 
-  // 2. Kiểm tra và tạo tài khoản Admin gắn liền với Workspace đó
-  const adminExist = await User.findOne({ email: "admin@supportflow.com" });
-  if (!adminExist) {
-    await User.create({
-      workspaceId: defaultWorkspace._id,
-      name: "System Admin",
-      email: "admin@supportflow.com",
-      password: "password123",
-      role: "admin",
-      status: "active",
-    });
-    console.log(
-      "💡 Seeded default admin account: admin@supportflow.com / password123",
-    );
-  }
-}
-
-mongoose
-  .connect(process.env.MONGODB_URI!)
-  .then(async () => {
-    console.log("✅ MongoDB Connected");
-    await seedAdmin();
-    app.listen(PORT, () =>
-      console.log(`🚀 Server running on http://localhost:${PORT}`),
-    );
-  })
-  .catch((err) => {
-    console.error("❌ DB Connection Error:", err);
-  });
+bootstrap();

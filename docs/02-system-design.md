@@ -242,6 +242,14 @@ types/
 
 Nguyên tắc:
 
+Route
+
+↓
+
+Validation Middleware
+
+↓
+
 Controller
 
 ↓
@@ -254,7 +262,7 @@ Repository
 
 ↓
 
-Database
+MongoDB
 
 Controller không truy cập Database.
 

@@ -9,11 +9,16 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
     "@supportflow/shared-types": "workspace:*",
+    "@supportflow/ui": "workspace:*",
+    "@tanstack/react-query": "^5.101.2",
     "axios": "^1.6.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-hook-form": "^7.81.0",
     "react-router-dom": "^6.23.1",
+    "zod": "^4.4.3",
     "zustand": "^4.5.2"
   },
   "devDependencies": {

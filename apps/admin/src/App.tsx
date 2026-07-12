@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuthStore } from "./store/auth.store";
+import { useAuthStore } from "./stores/auth.store";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 

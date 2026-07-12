@@ -622,7 +622,7 @@ chore:
 
 # 8. MVP Checklist
 
-Authentication
+Authentication (rồi)
 
 Realtime Chat
 

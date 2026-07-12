@@ -1,0 +1,7 @@
+{
+  "extends": "@supportflow/config/tsconfig.server.json",
+  "compilerOptions": {
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"]
+}

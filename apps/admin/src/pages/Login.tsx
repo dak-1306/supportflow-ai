@@ -101,7 +101,11 @@ export default function Login() {
           )}
         </div>
 
-        <Button disabled={loginMutation.isPending}>
+        <Button
+          disabled={loginMutation.isPending}
+          type="submit"
+          style={{ width: "100%", padding: 10 }}
+        >
           {/* Loading State */}
           {loginMutation.isPending ? "Đang xử lý..." : "Đăng nhập"}
         </Button>

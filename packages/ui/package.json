@@ -6,8 +6,12 @@
     "build": "tsc"
   },
   "exports": {
+    "./style.css": "./src/index.css",
     "./src/*": "./src/*"
   },
+  "sideEffects": [
+    "**/*.css"
+  ],
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@fontsource-variable/inter": "^5.2.8",

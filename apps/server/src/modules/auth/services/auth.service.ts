@@ -8,15 +8,21 @@ export class AuthService {
 
   private generateTokens(user: any) {
     const accessToken = jwt.sign(
-      { id: user._id, role: user.role },
+      {
+        id: user._id.toString(),
+        role: user.role,
+        workspaceId: user.workspaceId.toString(), // Nhúng trực tiếp workspaceId vào payload
+      },
       process.env.JWT_SECRET!,
       { expiresIn: "15m" },
     );
+
     const refreshToken = jwt.sign(
-      { id: user._id },
+      { id: user._id.toString() },
       process.env.JWT_REFRESH_SECRET!,
       { expiresIn: "7d" },
     );
+
     return { accessToken, refreshToken };
   }
 

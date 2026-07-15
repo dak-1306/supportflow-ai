@@ -4,8 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useChatStore } from "../store/chatStore";
 import { widgetKeys } from "./useChatQueries";
 import { MessagesResponse } from "../services/api";
+import { IMessage } from "@supportflow/shared-types";
 
-export const useChatSocket = () => {
+// Thêm tham số page và limit vào hook (mặc định page = 1, limit = 50)
+export const useChatSocket = (page = 1, limit = 50) => {
   const socketRef = useRef<Socket | null>(null);
   const queryClient = useQueryClient();
   const { conversationId, setAdminTyping } = useChatStore();
@@ -17,17 +19,19 @@ export const useChatSocket = () => {
 
     socketRef.current.emit("join_room", { conversationId });
 
-    socketRef.current.on("new_message", (message) => {
-      // Cập nhật realtime vào cache của React Query thay vì ghi trực tiếp vào Zustand
+    socketRef.current.on("new_message", (message: IMessage) => {
+      // Cập nhật realtime vào đúng cache có chứa [page, limit] của React Query
       queryClient.setQueryData(
-        widgetKeys.messages(conversationId),
+        [widgetKeys.messages(conversationId), page, limit], // <--- SỬA Ở ĐÂY
         (oldData: MessagesResponse | undefined) => {
           if (!oldData) return { messages: [message], total: 1 };
 
-          const exists = oldData.messages.some((m) => m._id === message._id);
+          // Kiểm tra trùng lặp
+          const exists = oldData.messages.some((m) => m.id === message.id);
           if (exists) return oldData;
 
           return {
+            ...oldData,
             messages: [...oldData.messages, message],
             total: oldData.total + 1,
           };
@@ -45,7 +49,7 @@ export const useChatSocket = () => {
         socketRef.current.disconnect();
       }
     };
-  }, [conversationId, queryClient, setAdminTyping]);
+  }, [conversationId, page, limit, queryClient, setAdminTyping]); // Thêm page, limit vào dependency array
 
   const emitTypingStatus = (isTyping: boolean) => {
     if (socketRef.current && conversationId) {

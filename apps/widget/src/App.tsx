@@ -11,6 +11,7 @@ function App() {
           Bong bóng chat nằm ở góc dưới bên phải màn hình.
         </p>
       </div>
+
       <ChatWidget />
     </div>
   );

@@ -1,35 +1,34 @@
 import { create } from "zustand";
+import { IMessage } from "@supportflow/shared-types";
+import { AdminChatState } from "../types"; // Import từ file types bạn vừa tạo
 
-interface Message {
-  _id: string;
-  conversationId: string;
-  sender: "CUSTOMER" | "AI" | "ADMIN";
-  message: string;
-  createdAt: string;
-}
-
-interface ChatState {
-  activeConversationId: string | null;
-  isCustomerTyping: boolean;
-  realtimeMessages: Record<string, Message[]>; // Lưu tin nhắn realtime theo conversationId
+// Kế thừa AdminChatState và định nghĩa thêm các Action thay đổi State
+interface ChatActions {
   setActiveConversationId: (id: string | null) => void;
   setCustomerTyping: (isTyping: boolean) => void;
-  addRealtimeMessage: (conversationId: string, message: Message) => void;
+  addRealtimeMessage: (conversationId: string, message: IMessage) => void;
   clearRealtimeMessages: (conversationId: string) => void;
 }
 
-export const useAdminChatStore = create<ChatState>((set) => ({
+type ChatStore = AdminChatState & ChatActions;
+
+export const useAdminChatStore = create<ChatStore>((set) => ({
+  // State mặc định (Thỏa mãn Interface AdminChatState)
   activeConversationId: null,
   isCustomerTyping: false,
   realtimeMessages: {},
+
+  // Actions
   setActiveConversationId: (activeConversationId) =>
     set({ activeConversationId }),
+
   setCustomerTyping: (isCustomerTyping) => set({ isCustomerTyping }),
+
   addRealtimeMessage: (conversationId, message) =>
     set((state) => {
       const currentList = state.realtimeMessages[conversationId] || [];
       // Tránh trùng lặp tin nhắn
-      if (currentList.some((m) => m._id === message._id)) return state;
+      if (currentList.some((m) => m.id === message.id)) return state;
       return {
         realtimeMessages: {
           ...state.realtimeMessages,
@@ -37,6 +36,7 @@ export const useAdminChatStore = create<ChatState>((set) => ({
         },
       };
     }),
+
   clearRealtimeMessages: (conversationId) =>
     set((state) => ({
       realtimeMessages: {

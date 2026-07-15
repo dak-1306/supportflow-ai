@@ -1,65 +1,122 @@
 import React from "react";
 import { useAdminChatStore } from "../stores/chat.store";
 import { useConversationsQuery } from "../hooks/useChatQueries";
+import { ScrollArea } from "@supportflow/ui/src/components/ui/scroll-area";
+import { Badge } from "@supportflow/ui/src/components/ui/badge";
+import { Skeleton } from "@supportflow/ui/src/components/ui/skeleton";
+import { IConversation } from "../types/index";
 
 export const SidebarConversations: React.FC = () => {
   const { activeConversationId, setActiveConversationId } = useAdminChatStore();
   const {
-    data: conversationResponse = [],
+    data: conversationResponse,
     isLoading,
     error,
   } = useConversationsQuery("AI");
 
-  const conversations = conversationResponse?.conversations || [];
+  const conversations: IConversation[] =
+    conversationResponse?.conversations || [];
   const total = conversationResponse?.total || 0;
 
-  if (isLoading)
+  if (isLoading) {
     return (
-      <div className="w-80 border-r border-gray-200 p-4 text-sm text-gray-400">
-        Đang tải danh sách...
+      <div className="w-80 border-r border-border bg-card h-full flex flex-col p-4 space-y-4 shrink-0">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-1/2" />
+          <Skeleton className="h-4 w-1/3" />
+        </div>
+        <div className="flex-1 space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          ))}
+        </div>
       </div>
     );
-  if (error)
+  }
+
+  if (error) {
     return (
-      <div className="w-80 border-r border-gray-200 p-4 text-sm text-red-500">
-        Lỗi tải dữ liệu.
+      <div className="w-80 border-r border-border bg-card h-full flex items-center justify-center p-4 text-sm text-destructive shrink-0">
+        Lỗi tải dữ liệu hội thoại.
       </div>
     );
+  }
 
   return (
-    <div className="w-80 border-r border-gray-200 bg-white h-full flex flex-col">
-      <div className="p-4 border-b border-gray-100">
-        <h2 className="text-lg font-bold text-slate-800">
+    <div className="w-80 border-r border-border bg-card h-full flex flex-col shrink-0">
+      <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Khách hàng trực tuyến
         </h2>
-        <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-semibold">
+        <Badge variant="secondary" className="font-mono rounded-full px-2 py-0">
           {total}
-        </span>
+        </Badge>
       </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {conversations.map((chat: any) => (
-          <button
-            key={chat._id}
-            onClick={() => setActiveConversationId(chat._id)}
-            className={`w-full text-left p-3 rounded-xl transition-colors flex flex-col gap-1 ${
-              activeConversationId === chat._id
-                ? "bg-slate-900 text-white"
-                : "hover:bg-slate-50 text-slate-700"
-            }`}
-          >
-            <span className="font-semibold text-sm truncate">
-              Khách hàng #{chat.customerId.slice(-6)}
-            </span>
-            {chat.lastMessage && (
-              <p
-                className={`text-xs truncate ${activeConversationId === chat._id ? "text-gray-300" : "text-gray-400"}`}
+
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-1">
+          {conversations.map((chat) => {
+            const isActive = activeConversationId === chat.id;
+            // Format nhanh thời gian cập nhật
+            const formattedTime = new Date(chat.updatedAt).toLocaleTimeString(
+              "vi-VN",
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+              },
+            );
+
+            return (
+              <button
+                key={chat.id}
+                onClick={() => setActiveConversationId(chat.id)}
+                className={`w-full text-left p-3 rounded-lg transition-all duration-150 flex flex-col gap-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "hover:bg-secondary/60 text-foreground"
+                }`}
               >
-                {chat.lastMessage}
-              </p>
-            )}
-          </button>
-        ))}
-      </div>
+                <div className="flex items-center justify-between w-full gap-2">
+                  <span className="font-medium text-sm truncate">
+                    User #{chat.customerId.slice(-6).toUpperCase()}
+                  </span>
+                  <span
+                    className={`text-[10px] font-mono ${isActive ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                  >
+                    {formattedTime}
+                  </span>
+                </div>
+
+                {chat.lastMessage && (
+                  <p
+                    className={`text-xs truncate w-full ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+                  >
+                    {chat.lastMessage}
+                  </p>
+                )}
+
+                {/* Tag hiển thị trạng thái AI / Trực tiếp */}
+                <div className="flex gap-1 mt-0.5">
+                  <Badge
+                    variant="outline"
+                    className={`text-[9px] px-1 py-0 uppercase tracking-wider rounded font-medium ${
+                      chat.status === "AI"
+                        ? isActive
+                          ? "border-primary-foreground text-primary-foreground"
+                          : "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                        : isActive
+                          ? "border-primary-foreground text-primary-foreground"
+                          : "bg-green-500/10 text-green-500 border-green-500/20"
+                    }`}
+                  >
+                    {chat.status === "AI" ? "AI Bot" : "Ủy quyền Admin"}
+                  </Badge>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </ScrollArea>
     </div>
   );
 };

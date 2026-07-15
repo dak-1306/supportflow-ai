@@ -1,62 +1,88 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 import { useAdminChatStore } from "../stores/chat.store";
 import { useAdminChatSocket } from "../hooks/useAdminChatSocket";
 import {
   useMessagesQuery,
   useSendMessageMutation,
 } from "../hooks/useChatQueries";
+import { Button } from "@supportflow/ui/src/components/ui/button";
+import { Input } from "@supportflow/ui/src/components/ui/input";
+import { ScrollArea } from "@supportflow/ui/src/components/ui/scroll-area";
+import { IMessage } from "@supportflow/shared-types";
 
 export const ChatWindow: React.FC = () => {
-  const { activeConversationId, isCustomerTyping, realtimeMessages } =
-    useAdminChatStore();
+  // Tối ưu render bằng Zustand Selector
+  const activeConversationId = useAdminChatStore(
+    (state) => state.activeConversationId,
+  );
+  const isCustomerTyping = useAdminChatStore((state) => state.isCustomerTyping);
+  const realtimeMessages = useAdminChatStore((state) => state.realtimeMessages);
+  const clearRealtimeMessages = useAdminChatStore(
+    (state) => state.clearRealtimeMessages,
+  );
+
   const { emitAdminTyping } = useAdminChatSocket();
 
   const [page, setPage] = useState(1);
+  const [text, setText] = useState("");
 
-  // Gọi Custom Hooks React Query đã đóng gói logic
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const { data, isLoading, isFetching } = useMessagesQuery(
     activeConversationId,
     page,
   );
   const sendMessageMutation = useSendMessageMutation(activeConversationId);
 
-  const dbMessages = data?.messages || []; // Bóc tách mảng tin nhắn từ DB ra đây
-  const totalInDb = data?.total || 0; // Số lượng tin nhắn hiện tại có trong DB
+  const dbMessages: IMessage[] = data?.messages || [];
+  const totalInDb = data?.total || 0;
 
-  // Reset page về 1 mỗi khi chuyển phòng chat
+  // Dọn dẹp trạng thái khi chuyển phòng chat
   useEffect(() => {
     setPage(1);
-  }, [activeConversationId]);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
-  const [text, setText] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // Tùy chọn: Xóa tin nhắn realtime cũ của phòng này vì đã có dbMessages lo liệu khi load lại
+    if (activeConversationId) {
+      clearRealtimeMessages(activeConversationId);
+    }
+  }, [activeConversationId, clearRealtimeMessages]);
 
-  // Gộp dữ liệu hiển thị (Lịch sử DB + Tin nhắn Realtime qua socket)
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, []);
+
   const activeRealtime = activeConversationId
     ? realtimeMessages[activeConversationId] || []
     : [];
-  const allMessages = [...dbMessages, ...activeRealtime].filter(
-    (msg, index, self) => self.findIndex((m) => m._id === msg._id) === index,
+
+  // Gộp sạch sẽ dựa trên trường 'id' đã chuẩn hóa ở Server
+  const allMessages: IMessage[] = [...dbMessages, ...activeRealtime].filter(
+    (msg, index, self) => self.findIndex((m) => m.id === msg.id) === index,
   );
 
+  // Cuộn xuống mượt mà
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [allMessages, isCustomerTyping]);
 
   if (!activeConversationId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50 text-gray-400">
-        Chọn một cuộc hội thoại để bắt đầu hỗ trợ
+      <div className="flex-1 flex flex-col items-center justify-center bg-background text-muted-foreground p-8 text-center select-none">
+        <Sparkles className="h-8 w-8 text-muted-foreground/40 mb-3 animate-pulse" />
+        <p className="text-sm font-medium">Chưa có hội thoại nào được chọn</p>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50 text-gray-400">
-        Đang tải tin nhắn...
+      <div className="flex-1 flex items-center justify-center bg-background text-sm text-muted-foreground">
+        Đang đồng bộ hội thoại...
       </div>
     );
   }
@@ -64,7 +90,6 @@ export const ChatWindow: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setText(e.target.value);
     emitAdminTyping(true);
-
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => emitAdminTyping(false), 2000);
   };
@@ -72,80 +97,93 @@ export const ChatWindow: React.FC = () => {
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || sendMessageMutation.isPending) return;
-
     const msgText = text.trim();
     setText("");
     emitAdminTyping(false);
-
     sendMessageMutation.mutate(msgText);
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 h-full">
-      <div className="flex-1 p-4 overflow-y-auto space-y-4">
-        {dbMessages.length < totalInDb && (
-          <div className="flex justify-center my-2">
-            <button
-              type="button"
-              disabled={isFetching}
-              onClick={() => setPage((prev) => prev + 1)}
-              className="text-xs text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
-            >
-              {isFetching ? "Đang tải..." : "Tải thêm tin nhắn cũ"}
-            </button>
-          </div>
-        )}
-
-        {allMessages.map((msg) => {
-          const isAdmin = msg.sender === "ADMIN";
-          return (
-            <div
-              key={msg._id}
-              className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
-                  isAdmin
-                    ? "bg-slate-900 text-white rounded-br-none"
-                    : "bg-white text-slate-800 border border-gray-200 rounded-bl-none"
-                }`}
+    <div className="flex-1 flex flex-col bg-background/50 h-full overflow-hidden">
+      <ScrollArea className="flex-1">
+        <div className="p-6 space-y-4">
+          {dbMessages.length < totalInDb && (
+            <div className="flex items-center justify-center py-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isFetching}
+                onClick={() => setPage((prev) => prev + 1)}
+                className="text-xs h-8 rounded-full px-4"
               >
-                {msg.message}
+                {isFetching ? "Đang xử lý..." : "Xem tin nhắn cũ hơn"}
+              </Button>
+            </div>
+          )}
+
+          {allMessages.map((msg) => {
+            const isAdmin = msg.sender === "ADMIN";
+            const msgTime = new Date(msg.createdAt).toLocaleTimeString(
+              "vi-VN",
+              { hour: "2-digit", minute: "2-digit" },
+            );
+
+            return (
+              <div
+                key={msg.id}
+                className={`flex flex-col gap-1 max-w-[75%] ${isAdmin ? "ml-auto items-end" : "mr-auto items-start"}`}
+              >
+                <div
+                  className={`px-4 py-2.5 text-sm rounded-xl shadow-sm leading-relaxed whitespace-pre-wrap ${
+                    isAdmin
+                      ? "bg-primary text-primary-foreground rounded-tr-none"
+                      : "bg-card text-foreground border border-border rounded-tl-none"
+                  }`}
+                >
+                  {msg.message}
+                </div>
+                <span className="text-[10px] text-muted-foreground/60 px-1">
+                  {msgTime}
+                </span>
+              </div>
+            );
+          })}
+
+          {isCustomerTyping && (
+            <div className="flex justify-start mr-auto">
+              <div className="bg-card border border-border rounded-xl rounded-tl-none px-4 py-3.5 flex items-center gap-1 shadow-sm">
+                <span className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce duration-300"></span>
+                <span className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce duration-300 delay-75"></span>
+                <span className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce duration-300 delay-150"></span>
               </div>
             </div>
-          );
-        })}
-        {isCustomerTyping && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-100"></span>
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-200"></span>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
 
-      <form
-        onSubmit={handleSend}
-        className="p-4 bg-white border-t border-gray-200 flex gap-2"
-      >
-        <input
-          type="text"
-          value={text}
-          onChange={handleInputChange}
-          placeholder="Nhập phản hồi của bạn..."
-          className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!text.trim() || sendMessageMutation.isPending}
-          className="bg-slate-900 text-white p-2 rounded-xl disabled:opacity-50"
+      <div className="p-4 bg-card border-t border-border shrink-0">
+        <form
+          onSubmit={handleSend}
+          className="flex items-center gap-2 max-w-5xl mx-auto"
         >
-          <Send className="w-4 h-4" />
-        </button>
-      </form>
+          <Input
+            type="text"
+            value={text}
+            onChange={handleInputChange}
+            placeholder="Nhập phản hồi trực tiếp tới khách hàng..."
+            className="flex-1 bg-background border-input px-4 py-2.5 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0"
+          />
+          <Button
+            type="submit"
+            disabled={!text.trim() || sendMessageMutation.isPending}
+            size="icon"
+            className="h-10 w-10 shrink-0 flex items-center"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };

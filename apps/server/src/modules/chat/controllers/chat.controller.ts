@@ -64,10 +64,25 @@ export class ChatController {
         message,
       );
 
-      const io = req.app.get("io");
-      io.to(`room_${conversationId}`).emit("new_message", savedMessage);
+      // Chuyển đổi dữ liệu Mongoose document thành JSON chuẩn để map _id -> id
+      const messageJSON = savedMessage.toJSON
+        ? savedMessage.toJSON()
+        : savedMessage;
+      // Đảm bảo trường id tồn tại cho frontend map khớp
+      const formattedMessage = {
+        ...messageJSON,
+        id: messageJSON.id || messageJSON._id?.toString(),
+      };
 
-      return sendSuccess(res, savedMessage, "Message sent successfully", 201);
+      const io = req.app.get("io");
+      io.to(`room_${conversationId}`).emit("new_message", formattedMessage);
+
+      return sendSuccess(
+        res,
+        formattedMessage,
+        "Message sent successfully",
+        201,
+      );
     } catch (error) {
       next(error);
     }
@@ -121,12 +136,21 @@ export class ChatController {
         adminId,
       );
 
+      // Chuyển đổi dữ liệu Mongoose document thành JSON chuẩn
+      const messageJSON = savedMessage.toJSON
+        ? savedMessage.toJSON()
+        : savedMessage;
+      const formattedMessage = {
+        ...messageJSON,
+        id: messageJSON.id || messageJSON._id?.toString(),
+      };
+
       const io = req.app.get("io");
-      io.to(`room_${conversationId}`).emit("new_message", savedMessage);
+      io.to(`room_${conversationId}`).emit("new_message", formattedMessage);
 
       return sendSuccess(
         res,
-        savedMessage,
+        formattedMessage,
         "Admin message sent successfully",
         201,
       );

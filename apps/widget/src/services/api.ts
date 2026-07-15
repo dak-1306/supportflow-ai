@@ -1,4 +1,5 @@
 import axios from "axios";
+import { IMessage } from "@supportflow/shared-types";
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -7,17 +8,8 @@ export const apiClient = axios.create({
   },
 });
 
-export interface Message {
-  _id: string;
-  conversationId: string;
-  sender: "CUSTOMER" | "AI" | "ADMIN";
-  message: string;
-  type: "TEXT" | "SYSTEM";
-  createdAt: string;
-}
-
 export interface MessagesResponse {
-  messages: Message[];
+  messages: IMessage[];
   total: number;
 }
 
@@ -47,7 +39,7 @@ export const chatApi = {
   sendMessage: async (
     conversationId: string,
     message: string,
-  ): Promise<Message> => {
+  ): Promise<IMessage> => {
     const response = await apiClient.post(
       `/customer/conversations/${conversationId}/messages`,
       { message },

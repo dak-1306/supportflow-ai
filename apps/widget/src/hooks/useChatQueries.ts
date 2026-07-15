@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { chatApi, MessagesResponse } from "../services/api";
+import { IMessage } from "@supportflow/shared-types"; // Import dùng chung
 
 export const widgetKeys = {
   messages: (conversationId: string | null) =>
@@ -17,12 +18,17 @@ export const useWidgetMessagesQuery = (
     queryFn: () => chatApi.getMessages(conversationId!, page, limit),
     enabled: !!conversationId,
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5, // Cache giữ trạng thái mới trong 5 phút
+    staleTime: 1000 * 60 * 5,
   });
 };
 
 // Hook gửi tin nhắn
-export const useWidgetSendMessageMutation = (conversationId: string | null) => {
+// Hook gửi tin nhắn
+export const useWidgetSendMessageMutation = (
+  conversationId: string | null,
+  page = 1, // Thêm tham số page (mặc định là 1)
+  limit = 50, // Thêm tham số limit (mặc định là 50)
+) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -30,18 +36,18 @@ export const useWidgetSendMessageMutation = (conversationId: string | null) => {
       if (!conversationId) throw new Error("No active session");
       return chatApi.sendMessage(conversationId, message);
     },
-    onSuccess: (newMessage) => {
-      // Cập nhật Optimistic trực tiếp vào Cache tin nhắn giúp hiển thị ngay lập tức
+    onSuccess: (newMessage: IMessage) => {
+      // Truyền đúng cấu trúc mảng Key bao gồm page và limit
       queryClient.setQueryData(
-        widgetKeys.messages(conversationId),
+        [widgetKeys.messages(conversationId), page, limit],
         (oldData: MessagesResponse | undefined) => {
           if (!oldData) return { messages: [newMessage], total: 1 };
 
-          // Tránh trùng lặp tin nhắn nếu Socket cũng đồng thời nhận được tin nhắn này
-          const exists = oldData.messages.some((m) => m._id === newMessage._id);
+          const exists = oldData.messages.some((m) => m.id === newMessage.id);
           if (exists) return oldData;
 
           return {
+            ...oldData,
             messages: [...oldData.messages, newMessage],
             total: oldData.total + 1,
           };

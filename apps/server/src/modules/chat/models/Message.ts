@@ -1,4 +1,5 @@
 import { Schema, model, Document as MongooseDocument, Types } from "mongoose";
+import { transformToJSON } from "../../../utils/mongoose-preset";
 
 export interface IMessage extends MongooseDocument {
   conversationId: Types.ObjectId;
@@ -30,6 +31,7 @@ const MessageSchema = new Schema<IMessage>(
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
+    toJSON: transformToJSON,
   },
 );
 

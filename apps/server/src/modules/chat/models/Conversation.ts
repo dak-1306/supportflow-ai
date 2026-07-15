@@ -1,4 +1,5 @@
 import { Schema, model, Document as MongooseDocument } from "mongoose";
+import { transformToJSON } from "../../../utils/mongoose-preset";
 
 export interface IConversation extends MongooseDocument {
   workspaceId: Schema.Types.ObjectId;
@@ -9,6 +10,7 @@ export interface IConversation extends MongooseDocument {
   endedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  lastMessage?: string;
 }
 
 const ConversationSchema = new Schema<IConversation>(
@@ -35,6 +37,7 @@ const ConversationSchema = new Schema<IConversation>(
   },
   {
     timestamps: true,
+    toJSON: transformToJSON,
   },
 );
 

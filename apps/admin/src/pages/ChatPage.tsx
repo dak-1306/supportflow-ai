@@ -3,9 +3,9 @@ import { ChatWindow } from "../features/chat/components/ChatWindow";
 
 export default function ChatPage() {
   return (
-    <div className="w-screen h-screen flex bg-slate-100 overflow-hidden">
-      {/* Bạn có thể nhúng Sidebar Menu chính của Admin ở đây nếu có */}
-      <div className="flex-1 flex h-full">
+    // Đảm bảo chiếm trọn không gian khả dụng và triệt tiêu scroll tổng của trang
+    <div className="w-full h-[calc(100vh-8rem)] flex bg-background overflow-hidden border border-border rounded-xl shadow-sm">
+      <div className="flex-1 flex h-full overflow-hidden">
         <SidebarConversations />
         <ChatWindow />
       </div>

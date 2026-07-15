@@ -2,7 +2,9 @@ import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAdminChatStore } from "../stores/chat.store";
-import { chatKeys } from "./useChatQueries"; // Import Cache Key tập trung
+import { chatKeys } from "./useChatQueries";
+import { IMessage } from "@supportflow/shared-types";
+import { IConversation } from "../types"; // Import đúng type Conversation của Admin
 
 export const useAdminChatSocket = () => {
   const socketRef = useRef<Socket | null>(null);
@@ -15,23 +17,29 @@ export const useAdminChatSocket = () => {
       import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
     );
 
-    socketRef.current.on("new_message", (message) => {
+    socketRef.current.on("new_message", (message: IMessage) => {
       addRealtimeMessage(message.conversationId, message);
 
       // Cập nhật tin nhắn cuối cùng ngoài Sidebar bằng Cache Key đồng bộ
       queryClient.setQueryData(
         chatKeys.allConversations("AI"),
-        (oldData: any) => {
+        (
+          oldData:
+            { conversations: IConversation[]; total: number } | undefined,
+        ) => {
           if (!oldData) return oldData;
-          return oldData.map((c: any) =>
-            c._id === message.conversationId
-              ? {
-                  ...c,
-                  lastMessage: message.message,
-                  updatedAt: new Date().toISOString(),
-                }
-              : c,
-          );
+          return {
+            ...oldData,
+            conversations: oldData.conversations.map((c) =>
+              c.id === message.conversationId
+                ? {
+                    ...c,
+                    lastMessage: message.message,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : c,
+            ),
+          };
         },
       );
     });

@@ -18,5 +18,6 @@ export interface IConversation {
 export interface AdminChatState {
   activeConversationId: string | null;
   isCustomerTyping: boolean;
+  isAITyping: boolean;
   realtimeMessages: Record<string, IMessage[]>;
 }

@@ -104,14 +104,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen w-screen overflow-hidden bg-background">
       {/* SIDEBAR FIXED (Chỉ hiển thị trên Desktop) */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r border-border bg-card">
+      <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col border-r border-border bg-card">
         <SidebarContent />
       </aside>
 
       {/* MAIN CONTAINER */}
-      <div className="flex flex-1 flex-col md:pl-64">
+      <div className="flex flex-1 flex-col md:pl-64 h-full min-h-0 overflow-hidden">
         {/* HEADER */}
         <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/85 backdrop-blur px-6">
           {/* Nút Menu Hamburger cho Mobile */}
@@ -178,8 +178,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* MAIN CONTENT AREA */}
-        <main className="flex-1 p-6 lg:p-8 bg-background">
-          <div className="max-w-7xl mx-auto h-full">{children}</div>
+        <main className="flex-1 p-6 lg:p-8 bg-background h-full min-h-0 overflow-hidden">
+          <div className="max-w-7xl mx-auto h-full min-h-0 flex flex-col">
+            {children}
+          </div>
         </main>
       </div>
     </div>

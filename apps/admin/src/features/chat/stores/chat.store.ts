@@ -6,6 +6,7 @@ import { AdminChatState } from "../types"; // Import từ file types bạn vừa
 interface ChatActions {
   setActiveConversationId: (id: string | null) => void;
   setCustomerTyping: (isTyping: boolean) => void;
+  setAITyping: (isTyping: boolean) => void;
   addRealtimeMessage: (conversationId: string, message: IMessage) => void;
   clearRealtimeMessages: (conversationId: string) => void;
 }
@@ -16,6 +17,7 @@ export const useAdminChatStore = create<ChatStore>((set) => ({
   // State mặc định (Thỏa mãn Interface AdminChatState)
   activeConversationId: null,
   isCustomerTyping: false,
+  isAITyping: false,
   realtimeMessages: {},
 
   // Actions
@@ -23,6 +25,8 @@ export const useAdminChatStore = create<ChatStore>((set) => ({
     set({ activeConversationId }),
 
   setCustomerTyping: (isCustomerTyping) => set({ isCustomerTyping }),
+
+  setAITyping: (isAITyping) => set({ isAITyping }),
 
   addRealtimeMessage: (conversationId, message) =>
     set((state) => {

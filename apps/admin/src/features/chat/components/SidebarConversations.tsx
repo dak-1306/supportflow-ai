@@ -8,11 +8,15 @@ import { IConversation } from "../types/index";
 
 export const SidebarConversations: React.FC = () => {
   const { activeConversationId, setActiveConversationId } = useAdminChatStore();
+  const [currentStatus, setCurrentStatus] = React.useState<
+    "AI" | "WAITING_ADMIN"
+  >("AI");
+
   const {
     data: conversationResponse,
     isLoading,
     error,
-  } = useConversationsQuery("AI");
+  } = useConversationsQuery(currentStatus);
 
   const conversations: IConversation[] =
     conversationResponse?.conversations || [];
@@ -44,6 +48,35 @@ export const SidebarConversations: React.FC = () => {
 
   return (
     <div className="w-80 border-r border-border bg-card h-full flex flex-col shrink-0">
+      <div className="p-3 border-b border-border flex gap-1 bg-muted/30 shrink-0">
+        <button
+          onClick={() => {
+            setCurrentStatus("AI");
+            setActiveConversationId(null);
+          }}
+          className={`flex-1 text-center py-1.5 text-xs font-medium rounded-md transition-all ${
+            currentStatus === "AI"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          AI Bot ({currentStatus === "AI" ? total : 0})
+        </button>
+        <button
+          onClick={() => {
+            setCurrentStatus("WAITING_ADMIN");
+            setActiveConversationId(null);
+          }}
+          className={`flex-1 text-center py-1.5 text-xs font-medium rounded-md transition-all ${
+            currentStatus === "WAITING_ADMIN"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Cần xử lý
+        </button>
+      </div>
+
       <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Khách hàng trực tuyến

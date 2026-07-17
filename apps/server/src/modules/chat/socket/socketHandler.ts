@@ -5,7 +5,6 @@ export const initSocketHandler = (io: Server) => {
   io.use((socket: Socket, next) => {
     const token = socket.handshake.auth?.token;
 
-    // Chỉ xác thực nếu token tồn tại và có định dạng hợp lệ
     if (token && typeof token === "string" && token.startsWith("Bearer ")) {
       try {
         const parts = token.split(" ");
@@ -19,7 +18,6 @@ export const initSocketHandler = (io: Server) => {
         }
         return next();
       } catch (err: unknown) {
-        // Log lỗi nhưng không chặn đứng hoàn toàn kết nối public nếu đó là widget
         console.error("Socket auth error:", (err as Error).message);
         return next(new Error("Authentication error"));
       }
@@ -40,6 +38,7 @@ export const initSocketHandler = (io: Server) => {
       }
     });
 
+    // Lắng nghe sự kiện báo hiệu trạng thái gõ phím từ client
     socket.on(
       "typing_status",
       (data: { conversationId: string; isTyping: boolean }) => {
@@ -47,6 +46,7 @@ export const initSocketHandler = (io: Server) => {
           socket.to(`room_${data.conversationId}`).emit("typing_status", {
             conversationId: data.conversationId,
             isTyping: data.isTyping,
+            sender: "CUSTOMER", // Gán rõ nguồn để phía Dashboard Admin bắt được
           });
         }
       },

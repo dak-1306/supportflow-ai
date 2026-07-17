@@ -6,29 +6,63 @@ import { widgetKeys } from "./useChatQueries";
 import { MessagesResponse } from "../services/api";
 import { IMessage } from "@supportflow/shared-types";
 
-// Thêm tham số page và limit vào hook (mặc định page = 1, limit = 50)
 export const useChatSocket = (page = 1, limit = 50) => {
   const socketRef = useRef<Socket | null>(null);
   const queryClient = useQueryClient();
-  const { conversationId, setAdminTyping } = useChatStore();
+  const { conversationId, setTypingStatus } = useChatStore();
 
+  // EFFECT 1: Quản lý vòng đời kết nối Socket (Chỉ chạy lại khi conversationId thay đổi)
   useEffect(() => {
     if (!conversationId) return;
 
-    socketRef.current = io(import.meta.env.VITE_SOCKET_URL);
+    // Ép transports là websocket để triệt tiêu loop polling lỗi
+    const socket = io(
+      import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
+      {
+        transports: ["websocket"],
+        autoConnect: true,
+      },
+    );
 
-    socketRef.current.emit("join_room", { conversationId });
+    socketRef.current = socket;
 
-    socketRef.current.on("new_message", (message: IMessage) => {
-      // Cập nhật realtime vào đúng cache có chứa [page, limit] của React Query
+    const handleConnect = () => {
+      console.log(
+        "🔗 Widget Socket connected! Joining room...",
+        conversationId,
+      );
+      socket.emit("join_room", { conversationId });
+    };
+
+    if (socket.connected) handleConnect();
+    socket.on("connect", handleConnect);
+
+    // Lắng nghe thực thể typing
+    socket.on(
+      "typing_status",
+      (data: { isTyping: boolean; sender?: "ADMIN" | "AI" }) => {
+        setTypingStatus(data.isTyping, data.sender);
+      },
+    );
+
+    return () => {
+      socket.emit("leave_room", { conversationId });
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [conversationId, setTypingStatus]);
+
+  // EFFECT 2: Đồng bộ nhận tin nhắn mới dựa trên biến page/limit cập nhật của React Query cache
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !conversationId) return;
+
+    const handleNewMessage = (message: IMessage) => {
       queryClient.setQueryData(
-        [widgetKeys.messages(conversationId), page, limit], // <--- SỬA Ở ĐÂY
+        [widgetKeys.messages(conversationId), page, limit],
         (oldData: MessagesResponse | undefined) => {
           if (!oldData) return { messages: [message], total: 1 };
-
-          // Kiểm tra trùng lặp
-          const exists = oldData.messages.some((m) => m.id === message.id);
-          if (exists) return oldData;
+          if (oldData.messages.some((m) => m.id === message.id)) return oldData;
 
           return {
             ...oldData,
@@ -37,23 +71,22 @@ export const useChatSocket = (page = 1, limit = 50) => {
           };
         },
       );
-    });
+    };
 
-    socketRef.current.on("typing_status", (data: { isTyping: boolean }) => {
-      setAdminTyping(data.isTyping);
-    });
+    socket.on("new_message", handleNewMessage);
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.emit("leave_room", { conversationId });
-        socketRef.current.disconnect();
-      }
+      socket.off("new_message", handleNewMessage);
     };
-  }, [conversationId, page, limit, queryClient, setAdminTyping]); // Thêm page, limit vào dependency array
+  }, [conversationId, page, limit, queryClient]);
 
   const emitTypingStatus = (isTyping: boolean) => {
-    if (socketRef.current && conversationId) {
-      socketRef.current.emit("typing_status", { conversationId, isTyping });
+    if (socketRef.current?.connected && conversationId) {
+      socketRef.current.emit("typing_status", {
+        conversationId,
+        isTyping,
+        sender: "CUSTOMER",
+      });
     }
   };
 

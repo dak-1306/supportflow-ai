@@ -98,14 +98,13 @@ apps/
 
 - admin
 - widget
+- server
 
 packages/
 
 - ui
 - api
 - shared-types
-
-backend/
 
 docs/
 

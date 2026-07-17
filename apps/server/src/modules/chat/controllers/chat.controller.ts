@@ -59,24 +59,18 @@ export class ChatController {
       const { conversationId } = req.params;
       const { message } = CreateMessageSchema.parse(req.body);
 
-      const savedMessage = await this.chatService.saveCustomerMessage(
-        conversationId,
-        message,
-      );
-
-      // Chuyển đổi dữ liệu Mongoose document thành JSON chuẩn để map _id -> id
-      const messageJSON = savedMessage.toJSON
-        ? savedMessage.toJSON()
-        : savedMessage;
-      // Đảm bảo trường id tồn tại cho frontend map khớp
-      const formattedMessage = {
-        ...messageJSON,
-        id: messageJSON.id || messageJSON._id?.toString(),
-      };
-
+      // Lấy instance socket io từ context của Express app
       const io = req.app.get("io");
-      io.to(`room_${conversationId}`).emit("new_message", formattedMessage);
 
+      // Gọi Service xử lý tập trung (lưu DB, phát socket customer message, kích hoạt AI chạy ngầm)
+      const formattedMessage =
+        await this.chatService.handleCustomerMessageWorkflow(
+          conversationId,
+          message,
+          io,
+        );
+
+      // Trả response HTTP về cho Widget ngay lập tức
       return sendSuccess(
         res,
         formattedMessage,
@@ -94,7 +88,6 @@ export class ChatController {
     next: NextFunction,
   ) => {
     try {
-      // Dùng trực tiếp req.user nhờ vào file express.d.ts đã khai báo mở rộng
       const workspaceId = req.user!.workspaceId;
       const status = req.query.status as string;
       const page = parseInt(req.query.page as string) || 1;
@@ -136,7 +129,6 @@ export class ChatController {
         adminId,
       );
 
-      // Chuyển đổi dữ liệu Mongoose document thành JSON chuẩn
       const messageJSON = savedMessage.toJSON
         ? savedMessage.toJSON()
         : savedMessage;

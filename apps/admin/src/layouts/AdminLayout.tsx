@@ -6,6 +6,7 @@ import {
   LogOut,
   Menu,
   Bot,
+  FileText,
 } from "lucide-react";
 import logo from "@supportflow/ui/src/assets/logo.svg";
 import { useAuthStore } from "../stores/auth.store";
@@ -21,7 +22,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@supportflow/ui/src/components/ui/dropdown-menu";
@@ -39,6 +39,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Hội thoại", href: "/chat", icon: MessageSquare },
+    { name: "Kiến thức", href: "/knowledge-base", icon: FileText },
   ];
 
   const handleLogout = () => {

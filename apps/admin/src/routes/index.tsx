@@ -4,6 +4,7 @@ import { useAuthStore } from "../stores/auth.store";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import ChatPage from "../pages/ChatPage";
+import KnowledgeBasePage from "../pages/kb-page";
 import AdminLayout from "../layouts/AdminLayout";
 
 // Component bảo vệ Route bằng JWT
@@ -35,6 +36,16 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <AdminLayout>
               <ChatPage />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/knowledge-base"
+        element={
+          <ProtectedRoute>
+            <AdminLayout>
+              <KnowledgeBasePage />
             </AdminLayout>
           </ProtectedRoute>
         }

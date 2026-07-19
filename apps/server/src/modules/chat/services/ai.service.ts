@@ -1,7 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AppError } from "../../../utils/app-error";
+import { getGoogleAI, validateAiConfig } from "../../../config/ai.config";
 
-// 1. Tách biệt hoàn toàn Prompt Builder sang một Helper kín
 class PromptBuilder {
   static buildSystemPrompt(companyName: string, context: string): string {
     return `
@@ -20,41 +19,23 @@ ${context}
   }
 }
 
-// 2. Core Service được bảo vệ bởi các bộ lọc ngăn spam
 export class AIService {
-  private genAI: GoogleGenerativeAI | null = null;
   private modelName: string;
 
   constructor() {
-    // Không ném lỗi ở đây nữa để tránh làm sập server khi import module
+    // Model mặc định tối ưu trên SDK mới là gemini-2.5-flash
     this.modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
-  }
-
-  // Hàm helper tự động kiểm tra và cấu hình khi cần dùng
-  private initGAI() {
-    if (this.genAI) return this.genAI;
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new AppError(
-        "GEMINI_API_KEY is not defined in environment variables. Hãy kiểm tra lại file .env.",
-        500,
-      );
-    }
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    return this.genAI;
   }
 
   async generateReply(
     customerMessage: string,
     history: { role: "user" | "model"; text: string }[],
     companyName: string = "SupportFlow AI LLC",
-    mockContext: string = "Sản phẩm SupportFlow AI có giá bản MVP là 0đ. Hỗ trợ deploy qua Docker. Thời gian hoàn thành trong 1 tháng.",
+    context: string = "Sản phẩm SupportFlow AI có giá bản MVP là 0đ. Hỗ trợ deploy qua Docker. Thời gian hoàn thành trong 1 tháng.",
   ): Promise<string> {
-    // Kích hoạt nạp API Key an toàn tại runtime
-    const clientAI = this.initGAI();
+    validateAiConfig();
+    const clientAI = getGoogleAI();
 
-    // BỘ LỌC CHẶN SPAM TẦNG NHẬP LIỆU...
     const sanitizedMessage = customerMessage.trim();
     if (!sanitizedMessage || sanitizedMessage.length < 2) {
       throw new AppError(
@@ -70,28 +51,26 @@ export class AIService {
     }
 
     try {
-      const model = clientAI.getGenerativeModel({
+      // Cú pháp Chat thuần diện mạo mới của SDK @google/genai
+      const chat = clientAI.chats.create({
         model: this.modelName,
-        systemInstruction: PromptBuilder.buildSystemPrompt(
-          companyName,
-          mockContext,
-        ),
-      });
-
-      // Toàn bộ logic chat bên dưới giữ nguyên...
-      const chat = model.startChat({
+        config: {
+          systemInstruction: PromptBuilder.buildSystemPrompt(
+            companyName,
+            context,
+          ),
+          temperature: 0.1,
+          maxOutputTokens: 400,
+        },
+        // Khớp lịch sử chat: SDK mới nhận định dạng vai trò là 'user' và 'model' chuẩn hóa trong parts
         history: history.map((h) => ({
           role: h.role,
           parts: [{ text: h.text }],
         })),
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 400,
-        },
       });
 
-      const result = await chat.sendMessage(sanitizedMessage);
-      const responseText = result.response.text();
+      const result = await chat.sendMessage({ message: sanitizedMessage });
+      const responseText = result.text;
 
       if (!responseText) {
         throw new AppError("AI generated an empty response", 500);

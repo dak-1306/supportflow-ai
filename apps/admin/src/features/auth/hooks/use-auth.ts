@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { AuthService } from "../services/auth.service.ts"; // Hoặc đường dẫn services/ của bạn
+import { AuthService } from "../services/auth.api.ts"; // Hoặc đường dẫn services/ của bạn
 import { useAuthStore } from "../../../stores/auth.store.ts"; // Hoặc đường dẫn store/ của bạn
 import { useNavigate } from "react-router-dom";
 

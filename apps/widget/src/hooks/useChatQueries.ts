@@ -23,7 +23,6 @@ export const useWidgetMessagesQuery = (
 };
 
 // Hook gửi tin nhắn
-// Hook gửi tin nhắn
 export const useWidgetSendMessageMutation = (
   conversationId: string | null,
   page = 1, // Thêm tham số page (mặc định là 1)

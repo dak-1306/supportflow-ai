@@ -5,6 +5,8 @@ import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import ChatPage from "../pages/ChatPage";
 import KnowledgeBasePage from "../pages/kb-page";
+import RagTestPage from "../pages/RagTestPage";
+
 import AdminLayout from "../layouts/AdminLayout";
 
 // Component bảo vệ Route bằng JWT
@@ -46,6 +48,16 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <AdminLayout>
               <KnowledgeBasePage />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rag-test"
+        element={
+          <ProtectedRoute>
+            <AdminLayout>
+              <RagTestPage />
             </AdminLayout>
           </ProtectedRoute>
         }

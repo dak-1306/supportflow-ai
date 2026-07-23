@@ -1,29 +1,11 @@
 import { AppError } from "../../../utils/app-error";
 import { getGoogleAI, validateAiConfig } from "../../../config/ai.config";
-
-class PromptBuilder {
-  static buildSystemPrompt(companyName: string, context: string): string {
-    return `
-You are an expert customer support assistant for "${companyName}". 
-Your code name is SupportFlow AI.
-
-CRITICAL RULES:
-1. You must ONLY answer based on the "KNOWLEDGE BASE" provided below.
-2. If the answer cannot be found in the provided "KNOWLEDGE BASE", or if the information is insufficient, you MUST exactly reply with: "Tôi chưa tìm thấy thông tin trong tài liệu. Nhân viên sẽ hỗ trợ bạn."
-3. Do not make up facts, do not use external knowledge, and do not speculate. 
-4. Keep the tone professional, polite, and helpful. Always reply in Vietnamese.
-
-KNOWLEDGE BASE:
-${context}
-`.trim();
-  }
-}
+import { buildSupportSystemPrompt } from "../prompts/support.prompt";
 
 export class AIService {
   private modelName: string;
 
   constructor() {
-    // Model mặc định tối ưu trên SDK mới là gemini-2.5-flash
     this.modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
   }
 
@@ -31,7 +13,7 @@ export class AIService {
     customerMessage: string,
     history: { role: "user" | "model"; text: string }[],
     companyName: string = "SupportFlow AI LLC",
-    context: string = "Sản phẩm SupportFlow AI có giá bản MVP là 0đ. Hỗ trợ deploy qua Docker. Thời gian hoàn thành trong 1 tháng.",
+    context: string = "Sản phẩm SupportFlow AI có giá bản MVP là 0đ. Hỗ trợ deploy qua Docker.",
   ): Promise<string> {
     validateAiConfig();
     const clientAI = getGoogleAI();
@@ -51,18 +33,13 @@ export class AIService {
     }
 
     try {
-      // Cú pháp Chat thuần diện mạo mới của SDK @google/genai
       const chat = clientAI.chats.create({
         model: this.modelName,
         config: {
-          systemInstruction: PromptBuilder.buildSystemPrompt(
-            companyName,
-            context,
-          ),
+          systemInstruction: buildSupportSystemPrompt({ companyName, context }),
           temperature: 0.1,
           maxOutputTokens: 400,
         },
-        // Khớp lịch sử chat: SDK mới nhận định dạng vai trò là 'user' và 'model' chuẩn hóa trong parts
         history: history.map((h) => ({
           role: h.role,
           parts: [{ text: h.text }],

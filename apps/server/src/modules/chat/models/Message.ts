@@ -9,6 +9,7 @@ export interface IMessage extends MongooseDocument {
   sources?: Array<any>;
   confidence?: number;
   createdAt: Date;
+  metadata?: Record<string, any>;
 }
 
 const MessageSchema = new Schema<IMessage>(
@@ -28,6 +29,8 @@ const MessageSchema = new Schema<IMessage>(
     },
     sources: { type: [Schema.Types.Mixed], default: undefined },
     confidence: { type: Number, default: undefined },
+
+    metadata: { type: Schema.Types.Mixed, default: undefined },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import authRoutes from "./modules/auth/routes/auth.route";
 import chatRouter from "./modules/chat/routes/chat.routes";
 import { knowledgeBaseRouter } from "./modules/knowledge-base/routes/knowledge-base.route";
+import ragRouter from "./modules/chat/routes/rag.route";
 
 import { errorHandler } from "./middlewares/error.middleware";
 import { connectDatabase } from "./config/database";
@@ -55,6 +56,7 @@ initSocketHandler(io);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1", chatRouter); // Đường dẫn chuẩn của route chat
 app.use("/api/v1/workspaces/:workspaceId/documents", knowledgeBaseRouter);
+app.use("/api/v1/rag", ragRouter);
 
 app.get("/health", (req, res) => {
   res.json({ success: true, message: "OK", data: { timestamp: new Date() } });

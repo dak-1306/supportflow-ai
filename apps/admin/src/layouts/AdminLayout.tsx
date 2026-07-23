@@ -7,6 +7,7 @@ import {
   Menu,
   Bot,
   FileText,
+  Sparkles,
 } from "lucide-react";
 import logo from "@supportflow/ui/src/assets/logo.svg";
 import { useAuthStore } from "../stores/auth.store";
@@ -40,6 +41,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Hội thoại", href: "/chat", icon: MessageSquare },
     { name: "Kiến thức", href: "/knowledge-base", icon: FileText },
+    { name: "RAG Test", href: "/rag-test", icon: Sparkles },
   ];
 
   const handleLogout = () => {

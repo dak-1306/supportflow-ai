@@ -1,6 +1,6 @@
 import { ConversationRepository } from "../repositories/conversation.repository";
 import { MessageRepository } from "../repositories/message.repository";
-import { AIService } from "./ai.service"; // Import AIService
+import { ragService } from "./rag.service"; // Nối RAG Service thay thế AI Service thuần
 import { AppError } from "../../../utils/app-error";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
@@ -15,10 +15,8 @@ export const CreateMessageSchema = z.object({
 });
 
 export class ChatService {
-  // Ép kiểu public hoặc tạo getter nếu cần truy cập từ bên ngoài, tuy nhiên ta đã đóng gói logic vào đây nên không cần (any) nữa
   private conversationRepo = new ConversationRepository();
   private messageRepo = new MessageRepository();
-  private aiService = new AIService();
 
   // Khóa chống spam tầng In-memory bảo vệ API Free Tier cho AI
   private activeAIRequests = new Set<string>();
@@ -59,7 +57,7 @@ export class ChatService {
     return this.messageRepo.findByConversationId(conversationId, page, limit);
   }
 
-  // Phương thức Workflow chính điều phối lưu dữ liệu và kích hoạt AI chạy ngầm
+  // Workflow chính điều phối lưu dữ liệu và kích hoạt AI chạy ngầm
   async handleCustomerMessageWorkflow(
     conversationId: string,
     messageText: string,
@@ -71,7 +69,6 @@ export class ChatService {
       messageText,
     );
 
-    // Định dạng cấu trúc JSON chuẩn chuyển ra ngoài
     const messageJSON = savedMessage.toJSON
       ? savedMessage.toJSON()
       : savedMessage;
@@ -80,13 +77,13 @@ export class ChatService {
       id: messageJSON.id || messageJSON._id?.toString(),
     };
 
-    // 2. Phát tín hiệu realtime ngay cho các Client đang kết nối (Admin Dashboard)
+    // 2. Phát tín hiệu realtime ngay cho Admin Dashboard / Widget
     io.to(`room_${conversationId}`).emit("new_message", formattedMessage);
 
-    // 3. Tách tiến trình gọi AI xử lý bất đồng bộ (Background Job) - Không await để giải phóng HTTP Response
+    // 3. Tiến trình RAG AI chạy ngầm (Background Job)
     this.triggerAILogicBackground(conversationId, messageText.trim(), io).catch(
       (err) => {
-        console.error("❌ Lỗi thực thi AI chạy ngầm:", err);
+        console.error("❌ Lỗi thực thi RAG AI chạy ngầm:", err);
       },
     );
 
@@ -120,7 +117,7 @@ export class ChatService {
     const conversation = await this.conversationRepo.findById(conversationId);
     if (!conversation) return;
 
-    // Chặn AI nếu trạng thái thuộc quyền Admin tiếp quản
+    // Chặn AI nếu cuộc hội thoại thuộc quyền Admin tiếp quản
     if (
       conversation.status === "WAITING_ADMIN" ||
       conversation.status === "HUMAN"
@@ -141,11 +138,12 @@ export class ChatService {
         sender: "AI",
       });
 
-      // Lấy lịch sử hội thoại
-      const history = await this.getLatestHistoryForAI(conversationId, 6);
-
-      // Gọi API Gemini sinh câu trả lời
-      const aiReply = await this.aiService.generateReply(text, history);
+      // GỌI RAG SERVICE
+      const workspaceIdStr = conversation.workspaceId.toString();
+      const ragResult = await ragService.queryKnowledgeBase(
+        workspaceIdStr,
+        text,
+      );
 
       // Tắt trạng thái typing
       io.to(`room_${conversationId}`).emit("typing_status", {
@@ -154,11 +152,8 @@ export class ChatService {
         sender: "AI",
       });
 
-      // Kiểm tra kịch bản Human Handoff chuyển giao Admin (Rule F03 / F06)
-      if (
-        aiReply ===
-        "Tôi chưa tìm thấy thông tin trong tài liệu. Nhân viên sẽ hỗ trợ bạn."
-      ) {
+      // Nếu RAG báo điểm tin cậy thấp -> Chuyển trạng thái sang WAITING_ADMIN (Milestone 6)
+      if (ragResult.shouldHandoff) {
         await this.updateStatusToWaitingAdmin(conversationId);
         io.emit("admin_notification", {
           conversationId,
@@ -166,8 +161,12 @@ export class ChatService {
         });
       }
 
-      // Lưu tin phản hồi AI vào Database
-      const aiMsg = await this.saveAIMessage(conversationId, aiReply);
+      // Lưu tin nhắn phản hồi AI kèm metadata trích dẫn
+      const aiMsg = await this.saveAIMessage(conversationId, ragResult.answer, {
+        citations: ragResult.citations,
+        confidenceScore: ragResult.confidenceScore,
+        shouldHandoff: ragResult.shouldHandoff,
+      });
 
       const aiMsgJSON = aiMsg.toJSON ? aiMsg.toJSON() : aiMsg;
       const formattedAiMsg = {
@@ -178,7 +177,7 @@ export class ChatService {
       // Phát tin nhắn của AI cho Widget và Admin Dashboard
       io.to(`room_${conversationId}`).emit("new_message", formattedAiMsg);
     } catch (error) {
-      // Đảm bảo luôn tắt typing indicator cho client khi dính lỗi hệ thống
+      // Đảm bảo luôn tắt typing indicator cho client khi gặp lỗi
       io.to(`room_${conversationId}`).emit("typing_status", {
         conversationId,
         isTyping: false,
@@ -227,7 +226,11 @@ export class ChatService {
     );
   }
 
-  async saveAIMessage(conversationId: string, messageText: string) {
+  async saveAIMessage(
+    conversationId: string,
+    messageText: string,
+    metadata?: Record<string, any>,
+  ) {
     const conversation = await this.conversationRepo.findById(conversationId);
     if (!conversation) {
       throw new AppError("Conversation not found", 404);
@@ -238,33 +241,13 @@ export class ChatService {
       sender: "AI",
       message: messageText,
       type: "TEXT",
+      metadata,
     });
 
     conversation.updatedAt = new Date();
     await conversation.save();
 
     return message;
-  }
-
-  async getLatestHistoryForAI(
-    conversationId: string,
-    limit: number = 6,
-  ): Promise<{ role: "user" | "model"; text: string }[]> {
-    const result = await this.messageRepo.findByConversationId(
-      conversationId,
-      1,
-      limit,
-    );
-
-    const messageList = result?.messages || [];
-    const sortedMessages = [...messageList].reverse();
-
-    return sortedMessages
-      .filter((msg) => msg.sender === "CUSTOMER" || msg.sender === "AI")
-      .map((msg) => ({
-        role: msg.sender === "CUSTOMER" ? "user" : "model",
-        text: msg.message,
-      }));
   }
 
   async updateStatusToWaitingAdmin(conversationId: string) {

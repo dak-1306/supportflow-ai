@@ -26,6 +26,13 @@ export const initSocketHandler = (io: Server) => {
   });
 
   io.on("connection", (socket: Socket) => {
+    // Admin Join vào Room của Workspace để nhận tin Handoff toàn Workspace
+    socket.on("join_workspace", (data: { workspaceId: string }) => {
+      if (data?.workspaceId) {
+        socket.join(`workspace_${data.workspaceId}`);
+      }
+    });
+
     socket.on("join_room", (data: { conversationId: string }) => {
       if (data?.conversationId) {
         socket.join(`room_${data.conversationId}`);

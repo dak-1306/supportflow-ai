@@ -155,9 +155,12 @@ export class ChatService {
       // Nếu RAG báo điểm tin cậy thấp -> Chuyển trạng thái sang WAITING_ADMIN (Milestone 6)
       if (ragResult.shouldHandoff) {
         await this.updateStatusToWaitingAdmin(conversationId);
-        io.emit("admin_notification", {
+
+        // Phát thông báo Handoff đến toàn bộ Admin thuộc Workspace đó
+        io.to(`workspace_${workspaceIdStr}`).emit("admin_notification", {
           conversationId,
-          type: "waiting_handoff",
+          type: "WAITING_HANDOFF",
+          message: "Có cuộc hội thoại mới cần tư vấn viên hỗ trợ!",
         });
       }
 
@@ -257,5 +260,105 @@ export class ChatService {
     conversation.status = "WAITING_ADMIN" as any;
     conversation.updatedAt = new Date();
     return conversation.save();
+  }
+
+  // 1. Admin Tiếp Quản (Take Over)
+  async takeOverConversation(conversationId: string, adminId: string, io: any) {
+    const conversation = await this.conversationRepo.findById(conversationId);
+    if (!conversation) throw new AppError("Conversation not found", 404);
+
+    // Cập nhật Status -> HUMAN, gán Admin ID
+    const updated = await this.conversationRepo.updateHandoffStatus(
+      conversationId,
+      "HUMAN",
+      adminId,
+    );
+
+    // Tạo System Message ghi nhận việc tiếp quản
+    const systemMsg = await this.messageRepo.create({
+      conversationId: conversation._id,
+      sender: "ADMIN",
+      message: "Tư vấn viên đã tham gia cuộc hội thoại.",
+      type: "SYSTEM",
+    });
+
+    // Bắn tín hiệu Realtime cho cả Client Widget và Admin Dashboard
+    io.to(`room_${conversationId}`).emit("conversation_status_changed", {
+      conversationId,
+      status: "HUMAN",
+      assignedAdminId: adminId,
+    });
+    io.to(`room_${conversationId}`).emit("new_message", systemMsg);
+
+    return updated;
+  }
+
+  // 2. Chuyển cuộc hội thoại cho Admin khác (Assign)
+  async assignConversation(
+    conversationId: string,
+    targetAdminId: string,
+    io: any,
+  ) {
+    const conversation = await this.conversationRepo.findById(conversationId);
+    if (!conversation) throw new AppError("Conversation not found", 404);
+
+    const updated = await this.conversationRepo.updateHandoffStatus(
+      conversationId,
+      conversation.status,
+      targetAdminId,
+    );
+
+    io.to(`room_${conversationId}`).emit("conversation_assigned", {
+      conversationId,
+      assignedAdminId: targetAdminId,
+    });
+
+    return updated;
+  }
+
+  // 3. Hoàn thành cuộc hội thoại (Resolve)
+  async resolveConversation(conversationId: string, io: any) {
+    const conversation = await this.conversationRepo.findById(conversationId);
+    if (!conversation) throw new AppError("Conversation not found", 404);
+
+    const updated = await this.conversationRepo.updateHandoffStatus(
+      conversationId,
+      "RESOLVED",
+    );
+
+    const systemMsg = await this.messageRepo.create({
+      conversationId: conversation._id,
+      sender: "ADMIN",
+      message: "Cuộc hội thoại đã được đóng.",
+      type: "SYSTEM",
+    });
+
+    io.to(`room_${conversationId}`).emit("conversation_status_changed", {
+      conversationId,
+      status: "RESOLVED",
+    });
+    io.to(`room_${conversationId}`).emit("new_message", systemMsg);
+
+    return updated;
+  }
+
+  // 4. Bật lại Bot AI (Cho phép AI trả lời lại)
+  async enableAI(conversationId: string, io: any) {
+    const conversation = await this.conversationRepo.findById(conversationId);
+    if (!conversation) throw new AppError("Conversation not found", 404);
+
+    const updated = await this.conversationRepo.updateHandoffStatus(
+      conversationId,
+      "AI",
+      null,
+    );
+
+    io.to(`room_${conversationId}`).emit("conversation_status_changed", {
+      conversationId,
+      status: "AI",
+      assignedAdminId: null,
+    });
+
+    return updated;
   }
 }

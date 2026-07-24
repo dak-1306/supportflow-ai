@@ -33,4 +33,29 @@ router.post(
   chatController.adminSendMessage,
 );
 
+// Kênh bảo mật cho App Admin (Human Handoff Actions)
+router.patch(
+  "/admin/conversations/:conversationId/take-over",
+  authMiddleware,
+  chatController.takeOver,
+);
+
+router.patch(
+  "/admin/conversations/:conversationId/assign",
+  authMiddleware,
+  chatController.assign,
+);
+
+router.patch(
+  "/admin/conversations/:conversationId/resolve",
+  authMiddleware,
+  chatController.resolve,
+);
+
+router.patch(
+  "/admin/conversations/:conversationId/enable-ai",
+  authMiddleware,
+  chatController.enableAI,
+);
+
 export default router;

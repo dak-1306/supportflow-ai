@@ -1,0 +1,117 @@
+### ===================================================================
+### COMPREHENSIVE TEST SUITE - MILESTONE 6: HUMAN HANDOFF
+### Extension: REST Client (VS Code)
+### ===================================================================
+
+@baseUrl = http://localhost:5000/api/v1
+@workspaceId = 6a5346b4a7d9bed8522f68db
+
+### -------------------------------------------------------------------
+### 1. BƯỚC 1: ĐĂNG NHẬP ADMIN (TỰ ĐỘNG BẮT ACCESSTOKEN)
+### -------------------------------------------------------------------
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@supportflow.com",
+  "password": "password123"
+}
+
+### Lưu AccessToken từ phản hồi Đăng nhập vào biến môi trường động
+@adminToken = {{adminLogin.response.body.data.accessToken}}
+
+
+### -------------------------------------------------------------------
+### 2. BƯỚC 2: KHÁCH HÀNG MỞ WIDGET & KHỞI TẠO PHIÊN CHAT
+### -------------------------------------------------------------------
+# @name initConversation
+POST {{baseUrl}}/customer/conversations/init
+Content-Type: application/json
+
+{
+  "workspaceId": "{{workspaceId}}"
+}
+
+### Tự động lấy Conversation ID vừa tạo
+@conversationId = {{initConversation.response.body.data.conversation.id}}
+
+
+### -------------------------------------------------------------------
+### 3. BƯỚC 3: TEST XÃ GIAO / CHÀO HỎI (KHÔNG TRIGGER HANDOFF)
+### -------------------------------------------------------------------
+### Khách chào hỏi -> Gemini sẽ chào lại tự nhiên, status vẫn giữ là "AI"
+POST {{baseUrl}}/customer/conversations/{{conversationId}}/messages
+Content-Type: application/json
+
+{
+  "message": "hello bạn"
+}
+
+
+### -------------------------------------------------------------------
+### 4. BƯỚC 4: KHÁCH HỎI CÂU NGOÀI SCOPE (KÍCH HOẠT AUTO HANDOFF)
+### -------------------------------------------------------------------
+### Khách hỏi thông tin không có trong KB -> Gemini xuất câu Fallback
+### System đổi status sang "WAITING_ADMIN" và bắn Socket admin_notification
+POST {{baseUrl}}/customer/conversations/{{conversationId}}/messages
+Content-Type: application/json
+
+{
+  "message": "Bên bạn có bán máy bay trực thăng chạy bằng năng lượng mặt trời không?"
+}
+
+
+### -------------------------------------------------------------------
+### 5. BƯỚC 5: KHÁCH HỎI THÊM (KIỂM TRA CHẶN BOT AI)
+### -------------------------------------------------------------------
+### Vì status đang là WAITING_ADMIN -> AI BỊ CHẶN HOÀN TOÀN (Yên lặng)
+POST {{baseUrl}}/customer/conversations/{{conversationId}}/messages
+Content-Type: application/json
+
+{
+  "message": "Alo, có ai ở đó không hỗ trợ mình với?"
+}
+
+
+### -------------------------------------------------------------------
+### 6. BƯỚC 6: ADMIN LẤY DANH SÁCH CUỘC HỘI THOẠI ĐANG CHỜ
+### -------------------------------------------------------------------
+GET {{baseUrl}}/admin/conversations?workspaceId={{workspaceId}}&status=WAITING_ADMIN
+Authorization: Bearer {{adminToken}}
+
+
+### -------------------------------------------------------------------
+### 7. BƯỚC 7: ADMIN TIẾP QUẢN CUỘC HỘI THOẠI (TAKE OVER)
+### -------------------------------------------------------------------
+### Status chuyển sang "HUMAN", gán adminId, gửi System message
+PATCH {{baseUrl}}/admin/conversations/{{conversationId}}/take-over
+Authorization: Bearer {{adminToken}}
+
+
+### -------------------------------------------------------------------
+### 8. BƯỚC 8: ADMIN TRẢ LỜI TRỰC TIẾP CHO KHÁCH HÀNG
+### -------------------------------------------------------------------
+POST {{baseUrl}}/admin/conversations/{{conversationId}}/messages
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "message": "Chào bạn! Mình là tư vấn viên, mình có thể giúp gì cho bạn ạ?"
+}
+
+
+### -------------------------------------------------------------------
+### 9. BƯỚC 9: ADMIN BẬT LẠI BOT AI (ENABLE AI - Tùy chọn)
+### -------------------------------------------------------------------
+### Chuyển status trở lại "AI" để Bot tự trả lời các câu hỏi sau
+PATCH {{baseUrl}}/admin/conversations/{{conversationId}}/enable-ai
+Authorization: Bearer {{adminToken}}
+
+
+### -------------------------------------------------------------------
+### 10. BƯỚC 10: ADMIN ĐÓNG CUỘC HỘI THOẠI (RESOLVE)
+### -------------------------------------------------------------------
+### Kết thúc phiên hỗ trợ, status đổi sang "RESOLVED"
+PATCH {{baseUrl}}/admin/conversations/{{conversationId}}/resolve
+Authorization: Bearer {{adminToken}}

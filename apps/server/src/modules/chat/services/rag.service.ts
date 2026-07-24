@@ -25,6 +25,38 @@ export interface RAGQueryResult {
   citations: Citation[];
 }
 
+async function callGeminiWithRetry<T>(
+  fn: () => Promise<T>,
+  retries = 2,
+  delayMs = 3000, // Tăng lên 3s thay vì 1s
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: any) {
+    // 🛑 NẾU DÍNH LỖI QUOTA (429 / RESOURCE_EXHAUSTED) -> KHÔNG RETRY NỮA, BÁO LỖI LUÔN
+    if (error.status === 429 || error.message?.includes("Quota exceeded")) {
+      console.error(
+        "⚠️ Đã chạm giới hạn Quota Free Tier của Google (5 req/phút). Hủy Retry.",
+      );
+      throw error;
+    }
+
+    // Chỉ retry đối với lỗi 503 (Server quá tải tạm thời)
+    if (
+      retries > 0 &&
+      (error.status === 503 || error.message?.includes("high demand"))
+    ) {
+      console.warn(
+        `[Gemini API] Server bận (503). Đang thử lại sau ${delayMs / 1000}s... (Còn ${retries} lần)`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return callGeminiWithRetry(fn, retries - 1, delayMs * 2);
+    }
+
+    throw error;
+  }
+}
+
 export class RAGService {
   async queryKnowledgeBase(
     workspaceId: string,
@@ -75,19 +107,21 @@ export class RAGService {
       });
 
       // 5. Gọi Gemini Model
-      const response = await clientAI.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: `CÂU HỎI CỦA KHÁCH HÀNG:\n"${question}"` }],
+      const response = await callGeminiWithRetry(() =>
+        clientAI.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: `CÂU HỎI CỦA KHÁCH HÀNG:\n"${question}"` }],
+            },
+          ],
+          config: {
+            systemInstruction,
+            temperature: 0.2,
           },
-        ],
-        config: {
-          systemInstruction,
-          temperature: 0.2,
-        },
-      });
+        }),
+      );
 
       const answerText = response.text || "Không thể khởi tạo câu trả lời.";
 

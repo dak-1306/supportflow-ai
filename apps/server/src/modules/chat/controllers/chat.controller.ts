@@ -150,4 +150,79 @@ export class ChatController {
       next(error);
     }
   };
+
+  // 1. Admin Take Over
+  takeOver = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { conversationId } = req.params;
+      const adminId = (req as any).user?.id || (req as any).user?._id;
+      const io = req.app.get("io");
+
+      const result = await this.chatService.takeOverConversation(
+        conversationId,
+        adminId,
+        io,
+      );
+      return sendSuccess(res, result, "Đã tiếp nhận hội thoại thành công", 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // 2. Admin Assign Conversation
+  assign = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { conversationId } = req.params;
+      const { targetAdminId } = req.body;
+      const io = req.app.get("io");
+
+      const result = await this.chatService.assignConversation(
+        conversationId,
+        targetAdminId,
+        io,
+      );
+      return sendSuccess(
+        res,
+        result,
+        "Đã chuyển giao hội thoại thành công",
+        200,
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // 3. Admin Resolve Conversation
+  resolve = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { conversationId } = req.params;
+      const io = req.app.get("io");
+
+      const result = await this.chatService.resolveConversation(
+        conversationId,
+        io,
+      );
+      return sendSuccess(
+        res,
+        result,
+        "Đã đánh dấu hội thoại là đã giải quyết",
+        200,
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // 4. Enable AI Bot
+  enableAI = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { conversationId } = req.params;
+      const io = req.app.get("io");
+
+      const result = await this.chatService.enableAI(conversationId, io);
+      return sendSuccess(res, result, "Đã bật AI Bot cho hội thoại", 200);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

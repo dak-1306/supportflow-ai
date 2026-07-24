@@ -24,4 +24,18 @@ export const adminChatApi = {
     );
     return response.data.data;
   },
+
+  takeOverConversation: async (conversationId: string) => {
+    const response = await api.post(
+      `/admin/conversations/${conversationId}/take-over`,
+    );
+    return response.data.data;
+  },
+
+  resolveConversation: async (conversationId: string) => {
+    const response = await api.post(
+      `/admin/conversations/${conversationId}/resolve`,
+    );
+    return response.data.data;
+  },
 };

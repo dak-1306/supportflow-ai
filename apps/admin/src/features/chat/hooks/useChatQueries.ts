@@ -57,3 +57,33 @@ export const useSendMessageMutation = (conversationId: string | null) => {
     },
   });
 };
+
+// 🌟 MILESTONE 6: Hook Tiếp quản hội thoại
+export const useTakeOverMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (conversationId: string) =>
+      adminChatApi.takeOverConversation(conversationId),
+    onSuccess: (_, conversationId) => {
+      // Làm mới danh sách để chuyển hội thoại từ WAITING_ADMIN -> HUMAN
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.messages(conversationId),
+      });
+    },
+  });
+};
+
+// 🌟 MILESTONE 6: Hook Hoàn thành hội thoại
+export const useResolveMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (conversationId: string) =>
+      adminChatApi.resolveConversation(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+};

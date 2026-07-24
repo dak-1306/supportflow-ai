@@ -102,4 +102,24 @@ export class ConversationRepository {
 
     return { conversations, total };
   }
+
+  async updateHandoffStatus(
+    conversationId: string,
+    status: "AI" | "WAITING_ADMIN" | "HUMAN" | "RESOLVED",
+    assignedAdminId?: string | null,
+  ) {
+    const updateData: Record<string, any> = { status, updatedAt: new Date() };
+
+    if (assignedAdminId !== undefined) {
+      updateData.assignedAdminId = assignedAdminId;
+    }
+
+    if (status === "RESOLVED") {
+      updateData.endedAt = new Date();
+    }
+
+    return ConversationModel.findByIdAndUpdate(conversationId, updateData, {
+      new: true,
+    });
+  }
 }

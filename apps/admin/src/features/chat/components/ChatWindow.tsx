@@ -5,6 +5,7 @@ import {
   ShieldAlert,
   UserCheck,
   CheckCircle2,
+  Bot, // 🟢 Bổ sung icon Bot
 } from "lucide-react";
 import { useAdminChatStore } from "../stores/chat.store";
 import { useAdminChatSocket } from "../hooks/useAdminChatSocket";
@@ -13,6 +14,7 @@ import {
   useSendMessageMutation,
   useTakeOverMutation,
   useResolveMutation,
+  useEnableAIMutation, // 🟢 Bổ sung Mutation Bật AI
 } from "../hooks/useChatQueries";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { Input } from "@supportflow/ui/src/components/ui/input";
@@ -21,6 +23,9 @@ import { IMessage } from "@supportflow/shared-types";
 export const ChatWindow: React.FC = () => {
   const activeConversationId = useAdminChatStore(
     (state) => state.activeConversationId,
+  );
+  const activeConversationStatus = useAdminChatStore(
+    (state) => state.activeConversationStatus,
   );
   const isCustomerTyping = useAdminChatStore((state) => state.isCustomerTyping);
   const isAITyping = useAdminChatStore((state) => state.isAITyping);
@@ -44,11 +49,11 @@ export const ChatWindow: React.FC = () => {
   const sendMessageMutation = useSendMessageMutation(activeConversationId);
   const takeOverMutation = useTakeOverMutation();
   const resolveMutation = useResolveMutation();
+  const enableAIMutation = useEnableAIMutation(); // 🟢 Sử dụng Hook Enable AI
 
   const dbMessages: IMessage[] = data?.messages || [];
   const totalInDb = data?.total || 0;
-  // Lấy trạng thái cuộc hội thoại từ message hoặc query
-  const conversationStatus = data?.status || "AI";
+  const conversationStatus = activeConversationStatus || data?.status || "AI";
 
   useEffect(() => {
     setPage(1);
@@ -103,9 +108,13 @@ export const ChatWindow: React.FC = () => {
     sendMessageMutation.mutate(msgText);
   };
 
+  console.log(
+    "🚀 ~ file: ChatWindow.tsx:92 ~ ChatWindow ~ conversationStatus:",
+    conversationStatus,
+  );
   return (
     <div className="flex-1 flex flex-col bg-background/50 h-full min-h-0 overflow-hidden">
-      {/* 🌟 MILESTONE 6: HANDOFF HEADER BANNER */}
+      {/* 🌟 HANDOFF HEADER BANNER */}
       {conversationStatus === "WAITING_ADMIN" && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 p-3 px-6 flex items-center justify-between shrink-0 animate-fadeIn">
           <div className="flex items-center gap-2.5 text-amber-600 text-xs font-medium">
@@ -129,22 +138,43 @@ export const ChatWindow: React.FC = () => {
         </div>
       )}
 
+      {/* 🟢 BANNER HUMAN: BỔ SUNG NÚT BẬT LẠI AI BOT */}
       {conversationStatus === "HUMAN" && (
         <div className="bg-emerald-500/10 border-b border-emerald-500/20 p-2.5 px-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 text-emerald-600 text-xs font-medium">
             <UserCheck className="w-4 h-4 text-emerald-500" />
             <span>Bạn đang tiếp quản hội thoại này (AI đã tắt).</span>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => resolveMutation.mutate(activeConversationId)}
-            disabled={resolveMutation.isPending}
-            className="text-xs h-7 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-            Hoàn thành hội thoại
-          </Button>
+
+          <div className="flex items-center gap-2">
+            {/* NÚT BẬT AI BOT */}
+            <Button
+              size="icon-lg"
+              variant="outline"
+              onClick={() => {
+                console.log(
+                  "🚀 ~ file: ChatWindow.tsx:187 ~ ChatWindow ~ enableAIMutation.mutate(activeConversationId):",
+                  activeConversationId,
+                );
+                enableAIMutation.mutate(activeConversationId);
+              }}
+              disabled={enableAIMutation.isPending}
+            >
+              <Bot className="w-3.5 h-3.5 mr-1 text-purple-500" />
+              {enableAIMutation.isPending ? "Đang bật..." : "Bật AI Bot"}
+            </Button>
+
+            {/* NÚT HOÀN THÀNH */}
+            <Button
+              size="icon-lg"
+              variant="outline"
+              onClick={() => resolveMutation.mutate(activeConversationId)}
+              disabled={resolveMutation.isPending}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+              Hoàn thành
+            </Button>
+          </div>
         </div>
       )}
 

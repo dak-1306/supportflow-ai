@@ -26,15 +26,21 @@ export const adminChatApi = {
   },
 
   takeOverConversation: async (conversationId: string) => {
-    const response = await api.post(
+    const response = await api.patch(
       `/admin/conversations/${conversationId}/take-over`,
     );
     return response.data.data;
   },
 
   resolveConversation: async (conversationId: string) => {
-    const response = await api.post(
+    const response = await api.patch(
       `/admin/conversations/${conversationId}/resolve`,
+    );
+    return response.data.data;
+  },
+  enableAI: async (conversationId: string) => {
+    const response = await api.patch(
+      `/admin/conversations/${conversationId}/enable-ai`,
     );
     return response.data.data;
   },

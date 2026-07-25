@@ -1,21 +1,28 @@
 import { create } from "zustand";
 import { IMessage } from "@supportflow/shared-types";
-import { AdminChatState } from "../types"; // Import từ file types bạn vừa tạo
+import { AdminChatState } from "../types";
 
-// Kế thừa AdminChatState và định nghĩa thêm các Action thay đổi State
+export type ConversationStatus = "AI" | "WAITING_ADMIN" | "HUMAN" | "RESOLVED";
+
+interface ExtendedAdminChatState extends AdminChatState {
+  activeConversationStatus: ConversationStatus | null;
+}
+
 interface ChatActions {
   setActiveConversationId: (id: string | null) => void;
+  setActiveConversationStatus: (status: ConversationStatus | null) => void; // 🟢 THÊM MỚI
   setCustomerTyping: (isTyping: boolean) => void;
   setAITyping: (isTyping: boolean) => void;
   addRealtimeMessage: (conversationId: string, message: IMessage) => void;
   clearRealtimeMessages: (conversationId: string) => void;
 }
 
-type ChatStore = AdminChatState & ChatActions;
+type ChatStore = ExtendedAdminChatState & ChatActions;
 
 export const useAdminChatStore = create<ChatStore>((set) => ({
-  // State mặc định (Thỏa mãn Interface AdminChatState)
+  // State mặc định
   activeConversationId: null,
+  activeConversationStatus: null, // 🟢 THÊM MỚI
   isCustomerTyping: false,
   isAITyping: false,
   realtimeMessages: {},
@@ -24,6 +31,10 @@ export const useAdminChatStore = create<ChatStore>((set) => ({
   setActiveConversationId: (activeConversationId) =>
     set({ activeConversationId }),
 
+  setActiveConversationStatus: (activeConversationStatus) =>
+    // 🟢 THÊM MỚI
+    set({ activeConversationStatus }),
+
   setCustomerTyping: (isCustomerTyping) => set({ isCustomerTyping }),
 
   setAITyping: (isAITyping) => set({ isAITyping }),
@@ -31,7 +42,6 @@ export const useAdminChatStore = create<ChatStore>((set) => ({
   addRealtimeMessage: (conversationId, message) =>
     set((state) => {
       const currentList = state.realtimeMessages[conversationId] || [];
-      // Tránh trùng lặp tin nhắn
       if (currentList.some((m) => m.id === message.id)) return state;
       return {
         realtimeMessages: {

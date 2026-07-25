@@ -156,11 +156,17 @@ export class ChatService {
       if (ragResult.shouldHandoff) {
         await this.updateStatusToWaitingAdmin(conversationId);
 
-        // Phát thông báo Handoff đến toàn bộ Admin thuộc Workspace đó
+        // 1. Thông báo chuông cho toàn bộ Admin
         io.to(`workspace_${workspaceIdStr}`).emit("admin_notification", {
           conversationId,
           type: "WAITING_HANDOFF",
           message: "Có cuộc hội thoại mới cần tư vấn viên hỗ trợ!",
+        });
+
+        // 🟢 2. THÊM DÒNG NÀY: Báo cho Widget & ChatWindow cập nhật UI ngay lập tức
+        io.to(`room_${conversationId}`).emit("conversation_status_changed", {
+          conversationId,
+          status: "WAITING_ADMIN",
         });
       }
 
@@ -200,6 +206,15 @@ export class ChatService {
     const conversation = await this.conversationRepo.findById(conversationId);
     if (!conversation) {
       throw new AppError("Conversation not found", 404);
+    }
+
+    // 🟢 BỔ SUNG: Nếu đang ở WAITING_ADMIN hoặc AI, tự động chuyển sang HUMAN và gán adminId
+    if (
+      conversation.status === ("WAITING_ADMIN" as any) ||
+      conversation.status === ("AI" as any)
+    ) {
+      conversation.status = "HUMAN" as any;
+      conversation.assignedAdminId = adminId as any;
     }
 
     const message = await this.messageRepo.create({

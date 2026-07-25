@@ -1,22 +1,27 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAdminChatStore } from "../stores/chat.store";
+import { useAdminChatStore, ConversationStatus } from "../stores/chat.store";
 import { chatKeys } from "./useChatQueries";
 import { IMessage } from "@supportflow/shared-types";
-import { IConversation } from "../types";
 
 export const useAdminChatSocket = () => {
   const socketRef = useRef<Socket | null>(null);
   const queryClient = useQueryClient();
   const {
     activeConversationId,
+    setActiveConversationStatus,
     addRealtimeMessage,
     setCustomerTyping,
     setAITyping,
   } = useAdminChatStore();
 
-  // EFFECT 1: Chỉ tạo duy nhất 1 connection socket tổng cho toàn trang Admin
+  // 🟢 Dùng Ref để luôn truy cập được activeConversationId MỚI NHẤT trong socket callback
+  const activeIdRef = useRef(activeConversationId);
+  useEffect(() => {
+    activeIdRef.current = activeConversationId;
+  }, [activeConversationId]);
+
   useEffect(() => {
     const socket = io(
       import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
@@ -28,56 +33,37 @@ export const useAdminChatSocket = () => {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log(
-        "🚀 Admin Socket connected successfully via WebSocket protocol!",
-      );
-      // Nếu đang mở dở một phòng chat trước khi rớt mạng, tự động join lại
-      if (activeConversationId) {
-        socket.emit("join_room", { conversationId: activeConversationId });
+      if (activeIdRef.current) {
+        socket.emit("join_room", { conversationId: activeIdRef.current });
       }
     });
 
     socket.on("new_message", (message: IMessage) => {
       addRealtimeMessage(message.conversationId, message);
-
-      const updateCache = (statusKey: string) => {
-        queryClient.setQueryData(
-          chatKeys.allConversations(statusKey),
-          (
-            oldData:
-              { conversations: IConversation[]; total: number } | undefined,
-          ) => {
-            if (!oldData) return oldData;
-            return {
-              ...oldData,
-              conversations: oldData.conversations.map((c) =>
-                c.id === message.conversationId
-                  ? {
-                      ...c,
-                      lastMessage: message.message,
-                      updatedAt: new Date().toISOString(),
-                    }
-                  : c,
-              ),
-            };
-          },
-        );
-      };
-
-      updateCache("AI");
-      updateCache("WAITING_ADMIN");
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     });
 
     socket.on(
       "admin_notification",
       (data: { conversationId: string; type: string }) => {
-        if (data.type === "waiting_handoff") {
-          queryClient.invalidateQueries({
-            queryKey: chatKeys.allConversations("AI"),
-          });
-          queryClient.invalidateQueries({
-            queryKey: chatKeys.allConversations("WAITING_ADMIN"),
-          });
+        if (data.type?.toUpperCase() === "WAITING_HANDOFF") {
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        }
+      },
+    );
+
+    // 🟢 SỰ KIỆN ĐỔI STATUS: Luôn lấy ID chuẩn từ activeIdRef
+    socket.on(
+      "conversation_status_changed",
+      (data: { conversationId: string; status: ConversationStatus }) => {
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.messages(data.conversationId),
+        });
+
+        // So sánh chính xác không lo bị stale closure
+        if (data.conversationId === activeIdRef.current) {
+          setActiveConversationStatus(data.status);
         }
       },
     );
@@ -86,14 +72,12 @@ export const useAdminChatSocket = () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [queryClient, addRealtimeMessage]); // Không đưa activeConversationId vào đây để tránh reconnect socket bừa bãi
+  }, [queryClient, addRealtimeMessage, setActiveConversationStatus]);
 
-  // EFFECT 2: Chỉ lo việc Join/Leave room khi Admin đổi phòng chat
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !activeConversationId) return;
 
-    // Nếu socket đã kết nối sẵn thì join ngay, ngược lại sự kiện 'connect' ở Effect 1 sẽ lo
     if (socket.connected) {
       socket.emit("join_room", { conversationId: activeConversationId });
     }

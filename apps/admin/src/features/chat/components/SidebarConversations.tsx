@@ -1,5 +1,5 @@
 import React from "react";
-import { useAdminChatStore } from "../stores/chat.store";
+import { useAdminChatStore, ConversationStatus } from "../stores/chat.store";
 import { useConversationsQuery } from "../hooks/useChatQueries";
 import { ScrollArea } from "@supportflow/ui/src/components/ui/scroll-area";
 import { Badge } from "@supportflow/ui/src/components/ui/badge";
@@ -7,21 +7,61 @@ import { Skeleton } from "@supportflow/ui/src/components/ui/skeleton";
 import { IConversation } from "../types/index";
 import { ShieldAlert, Bot, UserCheck } from "lucide-react";
 
+// Config ngắn gọn cho Navigation Tabs
+const TAB_CONFIGS: {
+  status: ConversationStatus;
+  label: string;
+  icon: React.ReactNode;
+  activeClass: string;
+}[] = [
+  {
+    status: "AI",
+    label: "AI Bot",
+    icon: <Bot className="w-3 h-3 text-purple-500" />,
+    activeClass: "bg-background text-foreground shadow-sm",
+  },
+  {
+    status: "WAITING_ADMIN",
+    label: "Cần xử lý",
+    icon: <ShieldAlert className="w-3 h-3 text-amber-500 animate-pulse" />,
+    activeClass:
+      "bg-amber-500/10 text-amber-600 font-semibold border border-amber-500/30",
+  },
+  {
+    status: "HUMAN",
+    label: "Đang hỗ trợ",
+    icon: <UserCheck className="w-3 h-3 text-emerald-500" />,
+    activeClass: "bg-background text-foreground shadow-sm",
+  },
+];
+
 export const SidebarConversations: React.FC = () => {
-  const { activeConversationId, setActiveConversationId } = useAdminChatStore();
-  const [currentStatus, setCurrentStatus] = React.useState<
-    "AI" | "WAITING_ADMIN" | "HUMAN" | "RESOLVED"
-  >("AI");
+  const {
+    activeConversationId,
+    setActiveConversationId,
+    activeConversationStatus,
+    setActiveConversationStatus,
+  } = useAdminChatStore();
+
+  // Tab mặc định nếu store chưa có
+  const currentTab = activeConversationStatus || "AI";
 
   const {
     data: conversationResponse,
     isLoading,
     error,
-  } = useConversationsQuery(currentStatus);
+  } = useConversationsQuery(currentTab);
 
   const conversations: IConversation[] =
     conversationResponse?.conversations || [];
   const total = conversationResponse?.total || 0;
+
+  // Hàm chuyển tab tập trung
+  const handleTabChange = (status: ConversationStatus) => {
+    setActiveConversationStatus(status);
+    // Khi bấm đổi tab thủ công -> clear conversation active
+    setActiveConversationId(null);
+  };
 
   if (isLoading) {
     return (
@@ -46,60 +86,30 @@ export const SidebarConversations: React.FC = () => {
 
   return (
     <div className="w-80 border-r border-border bg-card h-full flex flex-col shrink-0">
-      {/* Dynamic Tabs Navigation */}
+      {/* Tab Navigation Clean */}
       <div className="p-2 border-b border-border grid grid-cols-3 gap-1 bg-muted/30 shrink-0">
-        <button
-          onClick={() => {
-            setCurrentStatus("AI");
-            setActiveConversationId(null);
-          }}
-          className={`py-1.5 px-2 text-[11px] font-medium rounded-md transition-all flex items-center justify-center gap-1 ${
-            currentStatus === "AI"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Bot className="w-3 h-3 text-purple-500" />
-          <span>AI Bot</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setCurrentStatus("WAITING_ADMIN");
-            setActiveConversationId(null);
-          }}
-          className={`py-1.5 px-2 text-[11px] font-medium rounded-md transition-all flex items-center justify-center gap-1 relative ${
-            currentStatus === "WAITING_ADMIN"
-              ? "bg-amber-500/10 text-amber-600 font-semibold border border-amber-500/30"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <ShieldAlert className="w-3 h-3 text-amber-500 animate-pulse" />
-          <span>Cần xử lý</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setCurrentStatus("HUMAN");
-            setActiveConversationId(null);
-          }}
-          className={`py-1.5 px-2 text-[11px] font-medium rounded-md transition-all flex items-center justify-center gap-1 ${
-            currentStatus === "HUMAN"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <UserCheck className="w-3 h-3 text-emerald-500" />
-          <span>Đang hỗ trợ</span>
-        </button>
+        {TAB_CONFIGS.map((tab) => (
+          <button
+            key={tab.status}
+            onClick={() => handleTabChange(tab.status)}
+            className={`py-1.5 px-2 text-[11px] font-medium rounded-md transition-all flex items-center justify-center gap-1 ${
+              currentTab === tab.status
+                ? tab.activeClass
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+          </button>
+        ))}
       </div>
 
       <div className="p-3 border-b border-border flex items-center justify-between shrink-0 bg-card">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {currentStatus === "AI" && "Danh sách AI tự động"}
-          {currentStatus === "WAITING_ADMIN" && "Hội thoại chờ tiếp quản"}
-          {currentStatus === "HUMAN" && "Admin đang tiếp quản"}
-          {currentStatus === "RESOLVED" && "Đã hoàn thành"}
+          {currentTab === "AI" && "Danh sách AI tự động"}
+          {currentTab === "WAITING_ADMIN" && "Hội thoại chờ tiếp quản"}
+          {currentTab === "HUMAN" && "Admin đang tiếp quản"}
+          {currentTab === "RESOLVED" && "Đã hoàn thành"}
         </h2>
         <Badge
           variant="secondary"
@@ -129,7 +139,12 @@ export const SidebarConversations: React.FC = () => {
               return (
                 <button
                   key={chat.id}
-                  onClick={() => setActiveConversationId(chat.id)}
+                  onClick={() => {
+                    setActiveConversationId(chat.id);
+                    setActiveConversationStatus(
+                      chat.status as ConversationStatus,
+                    );
+                  }}
                   className={`w-full text-left p-3 rounded-lg transition-all duration-150 flex flex-col gap-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring relative ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-sm"

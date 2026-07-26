@@ -1,15 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminChatApi } from "../services/chat.api";
 import { useAdminChatStore } from "../stores/chat.store";
+import { ConversationStatus } from "@supportflow/shared-types";
 
 export const chatKeys = {
-  allConversations: (status: string) => ["conversations", status] as const,
+  allConversations: (status: ConversationStatus) =>
+    ["conversations", status] as const,
   messages: (conversationId: string | null) =>
     ["messages", conversationId] as const,
 };
 
 // Hook lấy danh sách cuộc hội thoại
-export const useConversationsQuery = (status = "AI", page = 1, limit = 20) => {
+export const useConversationsQuery = (
+  status: ConversationStatus = "AI",
+  page = 1,
+  limit = 20,
+) => {
   return useQuery({
     queryKey: chatKeys.allConversations(status),
     queryFn: () => adminChatApi.getConversations(status, page, limit),

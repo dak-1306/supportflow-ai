@@ -16,7 +16,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
   isPending,
 }) => {
   const [inputValue, setInputValue] = useState("");
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);

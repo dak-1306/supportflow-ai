@@ -11,6 +11,7 @@
     "@google/genai": "^2.12.0",
     "@qdrant/js-client-rest": "^1.18.0",
     "@supportflow/shared-types": "workspace:*",
+    "@supportflow/config": "workspace:*",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",

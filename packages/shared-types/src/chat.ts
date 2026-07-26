@@ -1,11 +1,16 @@
-export type SenderType = "CUSTOMER" | "AI" | "ADMIN";
+export type MessageSender = "CUSTOMER" | "AI" | "ADMIN";
 export type MessageType = "TEXT" | "SYSTEM";
 
+export const MESSAGE_SENDERS: MessageSender[] = ["CUSTOMER", "AI", "ADMIN"];
+export const MESSAGE_TYPES: MessageType[] = ["TEXT", "SYSTEM"];
 export interface IMessage {
   id: string;
   conversationId: string;
-  sender: SenderType;
+  sender: MessageSender;
   message: string;
   type: MessageType;
-  createdAt: string;
+  sources?: Array<any>;
+  confidence?: number;
+  metadata?: Record<string, any>;
+  createdAt: string | Date;
 }

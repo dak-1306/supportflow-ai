@@ -4,6 +4,7 @@ import { ragService } from "./rag.service"; // Nối RAG Service thay thế AI S
 import { AppError } from "../../../utils/app-error";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { ConversationStatus } from "@supportflow/shared-types";
 
 export const InitChatSchema = z.object({
   customerId: z.string().uuid().nullable().optional(),
@@ -40,7 +41,7 @@ export class ChatService {
       conversation = await this.conversationRepo.create({
         workspaceId: workspaceId as any,
         customerId: finalCustomerId,
-        status: "AI",
+        status: "AI" as ConversationStatus,
         startedAt: new Date(),
       });
       isNew = true;
@@ -210,10 +211,10 @@ export class ChatService {
 
     // 🟢 BỔ SUNG: Nếu đang ở WAITING_ADMIN hoặc AI, tự động chuyển sang HUMAN và gán adminId
     if (
-      conversation.status === ("WAITING_ADMIN" as any) ||
-      conversation.status === ("AI" as any)
+      conversation.status === ("WAITING_ADMIN" as ConversationStatus) ||
+      conversation.status === ("AI" as ConversationStatus)
     ) {
-      conversation.status = "HUMAN" as any;
+      conversation.status = "HUMAN" as ConversationStatus;
       conversation.assignedAdminId = adminId as any;
     }
 

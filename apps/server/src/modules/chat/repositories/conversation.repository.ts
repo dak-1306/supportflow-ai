@@ -1,6 +1,6 @@
 import { ConversationModel, IConversation } from "../models/Conversation";
 import { Types } from "mongoose";
-
+import { ConversationStatus } from "@supportflow/shared-types";
 export class ConversationRepository {
   async findById(id: string): Promise<IConversation | null> {
     return ConversationModel.findById(id);
@@ -105,7 +105,7 @@ export class ConversationRepository {
 
   async updateHandoffStatus(
     conversationId: string,
-    status: "AI" | "WAITING_ADMIN" | "HUMAN" | "RESOLVED",
+    status: ConversationStatus,
     assignedAdminId?: string | null,
   ) {
     const updateData: Record<string, any> = { status, updatedAt: new Date() };

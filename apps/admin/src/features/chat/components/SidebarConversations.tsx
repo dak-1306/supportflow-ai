@@ -1,11 +1,12 @@
 import React from "react";
-import { useAdminChatStore, ConversationStatus } from "../stores/chat.store";
+import { useAdminChatStore } from "../stores/chat.store";
 import { useConversationsQuery } from "../hooks/useChatQueries";
 import { ScrollArea } from "@supportflow/ui/src/components/ui/scroll-area";
 import { Badge } from "@supportflow/ui/src/components/ui/badge";
 import { Skeleton } from "@supportflow/ui/src/components/ui/skeleton";
 import { IConversation } from "../types/index";
 import { ShieldAlert, Bot, UserCheck } from "lucide-react";
+import { ConversationStatus } from "@supportflow/shared-types";
 
 // Config ngắn gọn cho Navigation Tabs
 const TAB_CONFIGS: {

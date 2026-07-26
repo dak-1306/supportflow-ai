@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAdminChatStore, ConversationStatus } from "../stores/chat.store";
+import { useAdminChatStore } from "../stores/chat.store";
 import { chatKeys } from "./useChatQueries";
-import { IMessage } from "@supportflow/shared-types";
+import { IMessage, ConversationStatus } from "@supportflow/shared-types";
 
 export const useAdminChatSocket = () => {
   const socketRef = useRef<Socket | null>(null);

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { transformToJSON } from "../utils/mongoose-preset"; // Path tới file helper của bạn
+import { transformToJSON } from "../../../utils/mongoose-preset"; // Path tới file helper của bạn
 
 const UserSchema = new mongoose.Schema(
   {

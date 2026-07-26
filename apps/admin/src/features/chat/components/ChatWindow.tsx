@@ -40,7 +40,7 @@ export const ChatWindow: React.FC = () => {
   const [text, setText] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data, isLoading, isFetching } = useMessagesQuery(
     activeConversationId,
@@ -107,11 +107,6 @@ export const ChatWindow: React.FC = () => {
     emitAdminTyping(false);
     sendMessageMutation.mutate(msgText);
   };
-
-  console.log(
-    "🚀 ~ file: ChatWindow.tsx:92 ~ ChatWindow ~ conversationStatus:",
-    conversationStatus,
-  );
   return (
     <div className="flex-1 flex flex-col bg-background/50 h-full min-h-0 overflow-hidden">
       {/* 🌟 HANDOFF HEADER BANNER */}
@@ -148,32 +143,24 @@ export const ChatWindow: React.FC = () => {
 
           <div className="flex items-center gap-2">
             {/* NÚT BẬT AI BOT */}
-            <Button
-              size="icon-lg"
-              variant="outline"
-              onClick={() => {
-                console.log(
-                  "🚀 ~ file: ChatWindow.tsx:187 ~ ChatWindow ~ enableAIMutation.mutate(activeConversationId):",
-                  activeConversationId,
-                );
-                enableAIMutation.mutate(activeConversationId);
-              }}
+            <button
+              className="bg-purple-500 hover:bg-purple-600 text-white text-xs h-8 px-3 rounded-lg shadow-sm flex items-center"
+              onClick={() => enableAIMutation.mutate(activeConversationId)}
               disabled={enableAIMutation.isPending}
             >
-              <Bot className="w-3.5 h-3.5 mr-1 text-purple-500" />
+              <Bot className="w-3.5 h-3.5 mr-1 text-white" />
               {enableAIMutation.isPending ? "Đang bật..." : "Bật AI Bot"}
-            </Button>
+            </button>
 
             {/* NÚT HOÀN THÀNH */}
-            <Button
-              size="icon-lg"
-              variant="outline"
+            <button
+              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs h-8 px-3 rounded-lg shadow-sm flex items-center"
               onClick={() => resolveMutation.mutate(activeConversationId)}
               disabled={resolveMutation.isPending}
             >
               <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
               Hoàn thành
-            </Button>
+            </button>
           </div>
         </div>
       )}

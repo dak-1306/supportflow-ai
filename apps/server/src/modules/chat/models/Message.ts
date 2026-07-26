@@ -1,11 +1,16 @@
 import { Schema, model, Document as MongooseDocument, Types } from "mongoose";
 import { transformToJSON } from "../../../utils/mongoose-preset";
-
+import {
+  MessageSender,
+  MessageType,
+  MESSAGE_SENDERS,
+  MESSAGE_TYPES,
+} from "@supportflow/shared-types";
 export interface IMessage extends MongooseDocument {
   conversationId: Types.ObjectId;
-  sender: "CUSTOMER" | "AI" | "ADMIN";
+  sender: MessageSender;
   message: string;
-  type: "TEXT" | "SYSTEM";
+  type: MessageType;
   sources?: Array<any>;
   confidence?: number;
   createdAt: Date;
@@ -19,15 +24,15 @@ const MessageSchema = new Schema<IMessage>(
       ref: "Conversation",
       required: true,
     },
-    sender: { type: String, enum: ["CUSTOMER", "AI", "ADMIN"], required: true },
+    sender: { type: String, enum: MESSAGE_SENDERS, required: true },
     message: { type: String, required: true },
     type: {
       type: String,
-      enum: ["TEXT", "SYSTEM"],
+      enum: MESSAGE_TYPES,
       default: "TEXT",
       required: true,
     },
-    sources: { type: [Schema.Types.Mixed], default: undefined },
+    sources: { type: Schema.Types.Mixed, default: undefined },
     confidence: { type: Number, default: undefined },
 
     metadata: { type: Schema.Types.Mixed, default: undefined },

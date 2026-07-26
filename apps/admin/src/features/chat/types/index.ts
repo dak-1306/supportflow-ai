@@ -1,11 +1,11 @@
 // Import interface dùng chung từ package shared
-import { IMessage } from "@supportflow/shared-types";
+import { IMessage, ConversationStatus } from "@supportflow/shared-types";
 
 export interface IConversation {
   id: string;
   workspaceId: string;
   customerId: string;
-  status: "AI" | "WAITING_ADMIN" | "HUMAN" | "RESOLVED";
+  status: ConversationStatus;
   assignedAdminId: string | null;
   startedAt: string;
   endedAt: string | null;

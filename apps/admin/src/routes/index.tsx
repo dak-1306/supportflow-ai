@@ -2,10 +2,10 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import Login from "../pages/Login";
-import Dashboard from "../pages/Dashboard";
 import ChatPage from "../pages/ChatPage";
 import KnowledgeBasePage from "../pages/kb-page";
 import RagTestPage from "../pages/RagTestPage";
+import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 
 import AdminLayout from "../layouts/AdminLayout";
 
@@ -27,11 +27,12 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <AdminLayout>
-              <Dashboard />
+              <DashboardPage />
             </AdminLayout>
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/chat"
         element={

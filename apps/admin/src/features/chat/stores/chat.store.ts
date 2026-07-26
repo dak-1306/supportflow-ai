@@ -1,8 +1,6 @@
 import { create } from "zustand";
-import { IMessage } from "@supportflow/shared-types";
+import { IMessage, ConversationStatus } from "@supportflow/shared-types";
 import { AdminChatState } from "../types";
-
-export type ConversationStatus = "AI" | "WAITING_ADMIN" | "HUMAN" | "RESOLVED";
 
 interface ExtendedAdminChatState extends AdminChatState {
   activeConversationStatus: ConversationStatus | null;

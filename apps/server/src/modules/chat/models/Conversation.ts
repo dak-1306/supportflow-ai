@@ -1,10 +1,14 @@
 import { Schema, model, Document as MongooseDocument } from "mongoose";
 import { transformToJSON } from "../../../utils/mongoose-preset";
+import {
+  ConversationStatus,
+  CONVERSATION_STATUSES,
+} from "@supportflow/shared-types";
 
 export interface IConversation extends MongooseDocument {
   workspaceId: Schema.Types.ObjectId;
   customerId: string;
-  status: "AI" | "WAITING_ADMIN" | "HUMAN" | "RESOLVED";
+  status: ConversationStatus;
   assignedAdminId?: Schema.Types.ObjectId | null;
   startedAt: Date;
   endedAt?: Date | null;
@@ -23,7 +27,7 @@ const ConversationSchema = new Schema<IConversation>(
     customerId: { type: String, required: true },
     status: {
       type: String,
-      enum: ["AI", "WAITING_ADMIN", "HUMAN", "RESOLVED"],
+      enum: CONVERSATION_STATUSES,
       default: "AI",
       required: true,
     },

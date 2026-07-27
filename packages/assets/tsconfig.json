@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler", // hoặc "node"
+    "declaration": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"] // 👈 Đảm bảo include bao gồm file ambient.d.ts trong src
+}

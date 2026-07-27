@@ -2,17 +2,34 @@ import { create } from "zustand";
 import { IMessage, ConversationStatus } from "@supportflow/shared-types";
 import { AdminChatState } from "../types";
 
-interface ExtendedAdminChatState extends AdminChatState {
-  activeConversationStatus: ConversationStatus | null;
+// 🟢 1. Dữ liệu một Item thông báo
+export interface INotificationItem {
+  conversationId: string;
+  type: string;
+  title?: string;
+  message?: string;
+  createdAt?: string;
 }
 
+// 🟢 2. Mở rộng State bao gồm cả Status và Notification
+interface ExtendedAdminChatState extends AdminChatState {
+  activeConversationStatus: ConversationStatus | null;
+  unreadNotificationCount: number;
+  notifications: INotificationItem[];
+}
+
+// 🟢 3. Các Actions cho Store (thêm actions quản lý thông báo)
 interface ChatActions {
   setActiveConversationId: (id: string | null) => void;
-  setActiveConversationStatus: (status: ConversationStatus | null) => void; // 🟢 THÊM MỚI
+  setActiveConversationStatus: (status: ConversationStatus | null) => void;
   setCustomerTyping: (isTyping: boolean) => void;
   setAITyping: (isTyping: boolean) => void;
   addRealtimeMessage: (conversationId: string, message: IMessage) => void;
   clearRealtimeMessages: (conversationId: string) => void;
+
+  // 🟢 THÊM MỚI: Actions cho Notifications
+  addNotification: (item: INotificationItem) => void;
+  clearUnreadNotifications: () => void;
 }
 
 type ChatStore = ExtendedAdminChatState & ChatActions;
@@ -20,17 +37,20 @@ type ChatStore = ExtendedAdminChatState & ChatActions;
 export const useAdminChatStore = create<ChatStore>((set) => ({
   // State mặc định
   activeConversationId: null,
-  activeConversationStatus: null, // 🟢 THÊM MỚI
+  activeConversationStatus: null,
   isCustomerTyping: false,
   isAITyping: false,
   realtimeMessages: {},
+
+  // 🟢 State mặc định cho Notifications
+  unreadNotificationCount: 0,
+  notifications: [],
 
   // Actions
   setActiveConversationId: (activeConversationId) =>
     set({ activeConversationId }),
 
   setActiveConversationStatus: (activeConversationStatus) =>
-    // 🟢 THÊM MỚI
     set({ activeConversationStatus }),
 
   setCustomerTyping: (isCustomerTyping) => set({ isCustomerTyping }),
@@ -56,4 +76,17 @@ export const useAdminChatStore = create<ChatStore>((set) => ({
         [conversationId]: [],
       },
     })),
+
+  // 🟢 THÊM MỚI: Thêm thông báo mới & tăng số lượng chưa đọc
+  addNotification: (item) =>
+    set((state) => ({
+      unreadNotificationCount: state.unreadNotificationCount + 1,
+      notifications: [item, ...state.notifications],
+    })),
+
+  // 🟢 THÊM MỚI: Reset số lượng chưa đọc về 0 khi Admin bấm mở chuông
+  clearUnreadNotifications: () =>
+    set({
+      unreadNotificationCount: 0,
+    }),
 }));

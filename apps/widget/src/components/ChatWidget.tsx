@@ -14,8 +14,14 @@ import { ChatMessages } from "./ChatMessages";
 import { ChatInputForm } from "./ChatInputForm";
 
 export const ChatWidget: React.FC = () => {
-  const { isOpen, setIsOpen, customerId, conversationId, setChatSession } =
-    useChatStore();
+  const {
+    isOpen,
+    setIsOpen,
+    customerId,
+    conversationId,
+    setChatSession,
+    unreadCount,
+  } = useChatStore();
   const [page, setPage] = useState(1);
   const [initLoading, setInitLoading] = useState(false);
 
@@ -79,13 +85,20 @@ export const ChatWidget: React.FC = () => {
       <Button
         onClick={handleToggleWidget}
         size="icon"
-        className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-md hover:scale-105 active:scale-95 transition-transform duration-150 flex items-center justify-center"
+        className="relative h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-md hover:scale-105 active:scale-95 transition-transform duration-150 flex items-center justify-center"
         aria-label="Mở khung hỗ trợ"
       >
         {isOpen ? (
           <X className="w-5 h-5" />
         ) : (
           <MessageCircle className="w-5 h-5" />
+        )}
+
+        {/* 🟢 HIỂN THỊ BADGE THÔNG BÁO TIN NHẮN MỚI KHI ĐÓNG WIDGET */}
+        {!isOpen && unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold text-destructive-foreground animate-bounce shadow-sm">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
         )}
       </Button>
     </div>

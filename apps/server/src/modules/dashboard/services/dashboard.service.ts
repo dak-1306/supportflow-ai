@@ -1,8 +1,14 @@
 import { Types } from "mongoose";
 import { DashboardRepository } from "../repositories/dashboard.repository";
+import { AppError } from "../../../utils/app-error"; // Import AppError
 
 export class DashboardService {
   static async getAnalytics(workspaceIdStr: string) {
+    // 1. Kiểm tra định dạng ObjectId
+    if (!Types.ObjectId.isValid(workspaceIdStr)) {
+      throw new AppError("Invalid Workspace ID format", 400);
+    }
+
     const workspaceId = new Types.ObjectId(workspaceIdStr);
 
     // Mốc thời gian Đầu ngày (00:00:00)
@@ -14,7 +20,6 @@ export class DashboardService {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    // Query song song tối ưu thời gian phản hồi
     const [convStats, dailyChart, recentConversations, docStats] =
       await Promise.all([
         DashboardRepository.getConversationStats(workspaceId, startOfToday),
@@ -23,7 +28,6 @@ export class DashboardService {
         DashboardRepository.getDocumentStats(workspaceId),
       ]);
 
-    // Tính toán Tỷ lệ thành công (Success Rate)
     const successRate =
       convStats.totalConversations > 0
         ? Math.round(
@@ -31,7 +35,6 @@ export class DashboardService {
           )
         : 0;
 
-    // Tổng hợp thông số Documents
     const totalDocuments = docStats.reduce((acc, curr) => acc + curr.count, 0);
     const readyDocuments = docStats.find((d) => d._id === "READY")?.count || 0;
 

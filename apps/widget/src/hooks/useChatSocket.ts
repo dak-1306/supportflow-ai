@@ -5,6 +5,7 @@ import { useChatStore } from "../store/chatStore";
 import { widgetKeys } from "./useChatQueries";
 import { MessagesResponse } from "../services/api";
 import { IMessage } from "@supportflow/shared-types";
+import { notificationSound } from "@supportflow/assets"; // Import âm thanh từ package assets
 
 export const useChatSocket = (page = 1, limit = 50) => {
   const socketRef = useRef<Socket | null>(null);
@@ -58,6 +59,7 @@ export const useChatSocket = (page = 1, limit = 50) => {
     if (!socket || !conversationId) return;
 
     const handleNewMessage = (message: IMessage) => {
+      // 1. Cập nhật Cache React Query
       queryClient.setQueryData(
         [widgetKeys.messages(conversationId), page, limit],
         (oldData: MessagesResponse | undefined) => {
@@ -71,6 +73,22 @@ export const useChatSocket = (page = 1, limit = 50) => {
           };
         },
       );
+
+      // 🟢 2. XỬ LÝ THÔNG BÁO CHO WIDGET:
+      // Lấy trạng thái isOpen hiện tại trực tiếp từ Zustand store
+      const isWidgetOpen = useChatStore.getState().isOpen;
+
+      // Nếu tin nhắn do ADMIN hoặc AI gửi tới VÀ Widget đang ĐÓNG
+      if (message.sender !== "CUSTOMER" && !isWidgetOpen) {
+        // Tăng số tin nhắn chưa đọc
+        useChatStore.getState().incrementUnreadCount();
+
+        // Phát âm thanh báo tin nhắn mới
+        try {
+          const audio = new Audio(notificationSound);
+          audio.play().catch(() => {});
+        } catch (e) {}
+      }
     };
 
     socket.on("new_message", handleNewMessage);

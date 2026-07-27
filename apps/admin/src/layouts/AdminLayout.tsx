@@ -26,7 +26,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@supportflow/ui/src/components/ui/dropdown-menu";
-
+import { useAdminChatSocket } from "@/features/chat/hooks/useAdminChatSocket";
+import { NotificationBell } from "@/features/chat/components/NotificationBell";
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
@@ -36,6 +37,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useAdminChatSocket();
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -142,6 +145,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <span className="text-foreground capitalize">
               {location.pathname.replace("/", "") || "Dashboard"}
             </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Notification Bell */}
+            <NotificationBell />
           </div>
 
           {/* User Profile Dropdown */}

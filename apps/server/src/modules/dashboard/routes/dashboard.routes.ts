@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { DashboardController } from "../controllers/dashboard.controller";
+import { authMiddleware } from "../../../middlewares/auth.middleware";
 
 const router = Router();
 
-// GET /api/workspaces/:workspaceId/analytics
 router.get(
   "/workspaces/:workspaceId/analytics",
+  authMiddleware,
   DashboardController.getAnalytics,
 );
 

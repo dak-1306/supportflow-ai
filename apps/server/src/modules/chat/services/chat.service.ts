@@ -70,16 +70,29 @@ export class ChatService {
       messageText,
     );
 
+    // 🟢 LẤY THÔNG TIN CONVERSATION ĐỂ LẤY WORKSPACE_ID
+    const conversation = await this.conversationRepo.findById(conversationId);
+
     const messageJSON = savedMessage.toJSON
       ? savedMessage.toJSON()
       : savedMessage;
     const formattedMessage = {
       ...messageJSON,
       id: messageJSON.id || messageJSON._id?.toString(),
+      conversationStatus: conversation?.status || "AI",
     };
 
-    // 2. Phát tín hiệu realtime ngay cho Admin Dashboard / Widget
+    // 2. Phát tín hiệu realtime cho Widget & Admin đang mở phòng này
     io.to(`room_${conversationId}`).emit("new_message", formattedMessage);
+
+    // 🟢 2.5 BỔ SUNG QUAN TRỌNG: Phát tín hiệu cho TOÀN BỘ ADMIN trong Workspace
+    // (Giúp Admin kêu chuông & nhảy Badge thông báo kể cả khi chưa bấm vào xem hội thoại)
+    if (conversation?.workspaceId) {
+      io.to(`workspace_${conversation.workspaceId.toString()}`).emit(
+        "new_message",
+        formattedMessage,
+      );
+    }
 
     // 3. Tiến trình RAG AI chạy ngầm (Background Job)
     this.triggerAILogicBackground(conversationId, messageText.trim(), io).catch(
@@ -157,14 +170,16 @@ export class ChatService {
       if (ragResult.shouldHandoff) {
         await this.updateStatusToWaitingAdmin(conversationId);
 
-        // 1. Thông báo chuông cho toàn bộ Admin
+        // 1. Bắn thông báo nâng cao cho Admin (Kèm preview tin nhắn khách hàng)
         io.to(`workspace_${workspaceIdStr}`).emit("admin_notification", {
           conversationId,
           type: "WAITING_HANDOFF",
-          message: "Có cuộc hội thoại mới cần tư vấn viên hỗ trợ!",
+          title: "Cần hỗ trợ gấp!",
+          message: `Khách hàng vừa hỏi: "${text.length > 40 ? text.substring(0, 40) + "..." : text}"`,
+          createdAt: new Date(),
         });
 
-        // 🟢 2. THÊM DÒNG NÀY: Báo cho Widget & ChatWindow cập nhật UI ngay lập tức
+        // 2. Báo cho Widget & ChatWindow cập nhật UI trạng thái ngay lập tức
         io.to(`room_${conversationId}`).emit("conversation_status_changed", {
           conversationId,
           status: "WAITING_ADMIN",

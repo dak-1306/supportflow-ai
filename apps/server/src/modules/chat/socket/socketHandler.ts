@@ -48,12 +48,17 @@ export const initSocketHandler = (io: Server) => {
     // Lắng nghe sự kiện báo hiệu trạng thái gõ phím từ client
     socket.on(
       "typing_status",
-      (data: { conversationId: string; isTyping: boolean }) => {
+      (data: {
+        conversationId: string;
+        isTyping: boolean;
+        sender?: string;
+      }) => {
         if (data?.conversationId) {
+          // Broadcast lại đúng sender mà Client gửi lên (ADMIN hoặc CUSTOMER)
           socket.to(`room_${data.conversationId}`).emit("typing_status", {
             conversationId: data.conversationId,
             isTyping: data.isTyping,
-            sender: "CUSTOMER", // Gán rõ nguồn để phía Dashboard Admin bắt được
+            sender: data.sender || "CUSTOMER", // Mặc định CUSTOMER nếu không truyền
           });
         }
       },

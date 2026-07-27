@@ -26,6 +26,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.4.0
         version: 5.4.0(react-hook-form@7.81.0(react@18.3.1))
+      '@supportflow/assets':
+        specifier: workspace:*
+        version: link:../../packages/assets
       '@supportflow/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -175,6 +178,9 @@ importers:
 
   apps/widget:
     dependencies:
+      '@supportflow/assets':
+        specifier: workspace:*
+        version: link:../../packages/assets
       '@supportflow/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -230,6 +236,8 @@ importers:
       vite:
         specifier: ^5.3.1
         version: 5.4.21(@types/node@26.1.1)(lightningcss@1.32.0)
+
+  packages/assets: {}
 
   packages/config: {}
 

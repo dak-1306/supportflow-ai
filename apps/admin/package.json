@@ -12,6 +12,7 @@
     "@hookform/resolvers": "^5.4.0",
     "@supportflow/shared-types": "workspace:*",
     "@supportflow/ui": "workspace:*",
+    "@supportflow/assets": "workspace:*",
     "@tanstack/react-query": "^5.101.2",
     "axios": "^1.6.8",
     "lucide-react": "^0.395.0",

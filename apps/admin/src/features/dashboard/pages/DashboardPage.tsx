@@ -1,9 +1,9 @@
 import React from "react";
 import { MessageSquare, Clock, FileText, CheckCircle2 } from "lucide-react";
-import { useDashboard } from "../hooks/useDashboard";
-import { MetricCard } from "../components/MetricCard";
-import { ChatVolumeChart } from "../components/ChatVolumeChart";
-import { RecentConversationsList } from "../components/RecentConversationsList";
+import { useDashboard } from "@/features/dashboard/hooks/useDashboard";
+import { MetricCard } from "@/features/dashboard/components/MetricCard";
+import { ChatVolumeChart } from "@/features/dashboard/components/ChatVolumeChart";
+import { RecentConversationsList } from "@/features/dashboard/components/RecentConversationsList";
 
 export const DashboardPage: React.FC = () => {
   const { analytics, isLoading, isError, error } = useDashboard();

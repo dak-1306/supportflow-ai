@@ -1,5 +1,5 @@
 import { Schema, model, Document as MongooseDocument, Types } from "mongoose";
-import { transformToJSON } from "../../../utils/mongoose-preset"; // Import preset dùng chung
+import { transformToJSON } from "../../../shared/utils/mongoose-preset"; // Import preset dùng chung
 
 export interface IDocumentChunk extends MongooseDocument {
   documentId: Types.ObjectId;

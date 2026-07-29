@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminChatApi } from "../services/chat.api";
-import { useAdminChatStore } from "../stores/chat.store";
+import { adminChatApi } from "@/features/chat/services/chat.api";
+import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 import { ConversationStatus } from "@supportflow/shared-types";
 
 export const chatKeys = {

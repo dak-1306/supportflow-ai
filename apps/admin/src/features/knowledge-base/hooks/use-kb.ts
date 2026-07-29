@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { kbApi } from "../services/kb.api";
+import { kbApi } from "@/features/knowledge-base/services/kb.api";
 import { useAuthStore } from "@/stores/auth.store"; // Đường dẫn tới authStore của bạn
 
 export const useKb = (page: number = 1, limit: number = 10) => {

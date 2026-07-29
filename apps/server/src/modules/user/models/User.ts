@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { transformToJSON } from "../../../utils/mongoose-preset"; // Path tới file helper của bạn
+import { transformToJSON } from "../../../shared/utils/mongoose-preset";
 
 const UserSchema = new mongoose.Schema(
   {
@@ -14,18 +14,16 @@ const UserSchema = new mongoose.Schema(
     password: { type: String, required: true },
     avatar: { type: String, default: "" },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
-    role: { type: String, enum: ["admin", "agent"], default: "admin" },
+    // Thêm role 'owner' vào enum
+    role: { type: String, enum: ["owner", "admin", "agent"], default: "agent" },
     lastLogin: { type: Date },
   },
   {
     timestamps: true,
-    // Cấu hình toJSON riêng biệt cho User để bảo vệ mật khẩu
     toJSON: {
       ...transformToJSON,
       transform: (_doc, ret) => {
-        // Chạy qua hàm transform chung để đổi _id -> id và bỏ __v
         const cleanRet = transformToJSON.transform(_doc, ret);
-        // Xóa ngay mật khẩu trước khi gửi ra ngoài
         delete cleanRet.password;
         return cleanRet;
       },

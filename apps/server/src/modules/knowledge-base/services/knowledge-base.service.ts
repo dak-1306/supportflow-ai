@@ -12,8 +12,8 @@ import {
   validateAiConfig,
   VECTOR_COLLECTION_NAME,
   VECTOR_SIZE,
-} from "../../../config/ai.config";
-import { AppError } from "../../../utils/app-error";
+} from "@/shared/config/ai.config";
+import { AppError } from "../../../shared/utils/app-error";
 
 export class KnowledgeBaseService {
   private isCollectionInitialized = false;

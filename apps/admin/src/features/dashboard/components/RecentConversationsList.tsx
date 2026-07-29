@@ -1,6 +1,6 @@
 import React from "react";
 import { ConversationStatus } from "@supportflow/shared-types";
-import { RecentConversationItem } from "../services/dashboard.api";
+import { RecentConversationItem } from "@/features/dashboard/services/dashboard.api";
 
 interface RecentConversationsListProps {
   conversations: RecentConversationItem[];

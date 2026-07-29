@@ -1,5 +1,5 @@
 import { Schema, model, Document as MongooseDocument, Types } from "mongoose";
-import { transformToJSON } from "../../../utils/mongoose-preset";
+import { transformToJSON } from "../../../shared/utils/mongoose-preset";
 import {
   MessageSender,
   MessageType,

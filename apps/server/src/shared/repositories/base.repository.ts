@@ -11,7 +11,15 @@ export class BaseRepository<T extends Document> {
     return this.model.findOne(filter).exec();
   }
 
+  async find(filter: Record<string, any> = {}): Promise<T[]> {
+    return this.model.find(filter).exec();
+  }
+
   async create(item: any): Promise<T> {
     return this.model.create(item);
+  }
+
+  async update(id: string, updateData: Record<string, any>): Promise<T | null> {
+    return this.model.findByIdAndUpdate(id, updateData, { new: true }).exec();
   }
 }

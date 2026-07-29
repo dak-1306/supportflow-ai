@@ -1,7 +1,7 @@
 // src/config/ai.config.ts
 import { GoogleGenAI } from "@google/genai";
 import { QdrantClient } from "@qdrant/js-client-rest";
-import { AppError } from "../utils/app-error";
+import { AppError } from "@/shared/utils/app-error";
 
 // 1. Chuyển sang sử dụng một hàm getter để khởi tạo instance muộn (Lazy Load)
 export const getGoogleAI = () => {

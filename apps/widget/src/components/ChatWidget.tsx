@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { MessageCircle, X } from "lucide-react";
-import { useChatStore } from "../store/chatStore";
-import { useChatSocket } from "../hooks/useChatSocket";
+import { useChatStore } from "@/store/chatStore";
+import { useChatSocket } from "@/hooks/useChatSocket";
 import {
   useWidgetMessagesQuery,
   useWidgetSendMessageMutation,
-} from "../hooks/useChatQueries";
-import { chatApi } from "../services/api";
+} from "@/hooks/useChatQueries";
+import { chatApi } from "@/services/api";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { Card } from "@supportflow/ui/src/components/ui/card";
-import { ChatHeader } from "./ChatHeader";
-import { ChatMessages } from "./ChatMessages";
-import { ChatInputForm } from "./ChatInputForm";
+import { ChatHeader } from "@/components/ChatHeader";
+import { ChatMessages } from "@/components/ChatMessages";
+import { ChatInputForm } from "@/components/ChatInputForm";
 
 export const ChatWidget: React.FC = () => {
   const {

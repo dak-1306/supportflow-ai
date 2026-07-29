@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   dashboardApi,
   DashboardAnalyticsResponse,
-} from "../services/dashboard.api";
+} from "@/features/dashboard/services/dashboard.api";
 import { useAuthStore } from "@/stores/auth.store";
 
 export const useDashboard = () => {

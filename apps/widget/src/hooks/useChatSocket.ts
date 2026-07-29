@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useChatStore } from "../store/chatStore";
-import { widgetKeys } from "./useChatQueries";
-import { MessagesResponse } from "../services/api";
+import { useChatStore } from "@/store/chatStore";
+import { widgetKeys } from "@/hooks/useChatQueries";
+import { MessagesResponse } from "@/services/api";
 import { IMessage } from "@supportflow/shared-types";
 import { notificationSound } from "@supportflow/assets"; // Import âm thanh từ package assets
 

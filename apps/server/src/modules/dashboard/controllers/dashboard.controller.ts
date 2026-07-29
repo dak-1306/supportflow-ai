@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { DashboardService } from "../services/dashboard.service";
-import { sendSuccess } from "../../../utils/api-response";
-import { AppError } from "../../../utils/app-error";
+import { sendSuccess } from "../../../shared/utils/api-response";
+import { AppError } from "../../../shared/utils/app-error";
 
 export class DashboardController {
   static async getAnalytics(req: Request, res: Response, next: NextFunction) {

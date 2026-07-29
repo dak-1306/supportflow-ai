@@ -1,5 +1,5 @@
 import { Schema, model, Document as MongooseDocument } from "mongoose";
-import { transformToJSON } from "../../../utils/mongoose-preset";
+import { transformToJSON } from "../../../shared/utils/mongoose-preset";
 import {
   ConversationStatus,
   CONVERSATION_STATUSES,

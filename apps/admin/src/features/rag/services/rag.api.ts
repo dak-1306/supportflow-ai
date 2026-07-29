@@ -1,4 +1,4 @@
-import { api } from "../../../services/client";
+import { api } from "@/services/client";
 
 export interface Citation {
   documentId: string;

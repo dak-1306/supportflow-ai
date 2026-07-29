@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { IMessage, ConversationStatus } from "@supportflow/shared-types";
-import { AdminChatState } from "../types";
+import { AdminChatState } from "@/features/chat/types";
 
 // 🟢 1. Dữ liệu một Item thông báo
 export interface INotificationItem {

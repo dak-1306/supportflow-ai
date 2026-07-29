@@ -1,31 +1,49 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuthStore } from "../stores/auth.store";
-import Login from "../pages/Login";
-import ChatPage from "../pages/ChatPage";
-import KnowledgeBasePage from "../pages/kb-page";
-import RagTestPage from "../pages/RagTestPage";
+import { useAuthStore } from "@/stores/auth.store";
+import Login from "@/features/auth/pages/Login";
+import ChatPage from "@/features/chat/pages/ChatPage";
+import KnowledgeBasePage from "@/features/knowledge-base/pages/kb-page";
+import RagTestPage from "@/features/rag/pages/RagTestPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
+import AdminLayout from "@/layouts/AdminLayout";
 
-import AdminLayout from "../layouts/AdminLayout";
+// Nâng cấp ProtectedRoute hỗ trợ kiểm tra Role
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: ("owner" | "admin" | "agent")[];
+}
 
-// Component bảo vệ Route bằng JWT
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+  const { isAuthenticated, user } = useAuthStore((state) => ({
+    isAuthenticated: state.isAuthenticated,
+    user: state.user,
+  }));
+
+  // 1. Chưa đăng nhập -> Chuyển hướng về trang Login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // 2. Đã đăng nhập nhưng Role không nằm trong danh sách được phép -> Chuyển về trang Chat
+  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/chat" replace />;
+  }
+
+  return <>{children}</>;
 }
 
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Route công khai không dùng Layout Admin */}
+      {/* Route công khai */}
       <Route path="/login" element={<Login />} />
 
-      {/* Toàn bộ các Route Admin được bảo vệ bởi ProtectedRoute & bọc trong AdminLayout */}
+      {/* Các Route Admin bọc trong AdminLayout */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["owner", "admin"]}>
             <AdminLayout>
               <DashboardPage />
             </AdminLayout>
@@ -36,27 +54,29 @@ export default function AppRoutes() {
       <Route
         path="/chat"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["owner", "admin", "agent"]}>
             <AdminLayout>
               <ChatPage />
             </AdminLayout>
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/knowledge-base"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["owner", "admin"]}>
             <AdminLayout>
               <KnowledgeBasePage />
             </AdminLayout>
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/rag-test"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["owner", "admin"]}>
             <AdminLayout>
               <RagTestPage />
             </AdminLayout>
@@ -65,7 +85,7 @@ export default function AppRoutes() {
       />
 
       {/* Điều hướng mặc định */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/chat" replace />} />
     </Routes>
   );
 }

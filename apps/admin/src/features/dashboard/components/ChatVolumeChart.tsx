@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ChartVolumePoint } from "../services/dashboard.api";
+import { ChartVolumePoint } from "@/features/dashboard/services/dashboard.api";
 
 interface ChatVolumeChartProps {
   data: ChartVolumePoint[];

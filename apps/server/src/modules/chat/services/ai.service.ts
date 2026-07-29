@@ -1,4 +1,4 @@
-import { AppError } from "../../../utils/app-error";
+import { AppError } from "../../../shared/utils/app-error";
 import { getGoogleAI, validateAiConfig } from "../../../config/ai.config";
 import { buildSupportSystemPrompt } from "../prompts/support.prompt";
 

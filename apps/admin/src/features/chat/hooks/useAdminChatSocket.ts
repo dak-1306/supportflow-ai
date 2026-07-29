@@ -2,9 +2,9 @@
 import { useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAdminChatStore } from "../stores/chat.store";
+import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 import { useAuthStore } from "@/stores/auth.store"; // Import auth store lấy workspaceId
-import { chatKeys } from "./useChatQueries";
+import { chatKeys } from "@/features/chat/hooks/useChatQueries";
 import { IMessage, ConversationStatus } from "@supportflow/shared-types";
 
 import { notificationSound } from "@supportflow/assets";

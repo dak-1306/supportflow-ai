@@ -1,5 +1,5 @@
-import { SidebarConversations } from "../features/chat/components/SidebarConversations";
-import { ChatWindow } from "../features/chat/components/ChatWindow";
+import { SidebarConversations } from "@/features/chat/components/SidebarConversations";
+import { ChatWindow } from "@/features/chat/components/ChatWindow";
 import { useEffect } from "react";
 import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 

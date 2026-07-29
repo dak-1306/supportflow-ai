@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useLoginMutation } from "../features/auth/hooks/use-auth.ts";
+import { useLoginMutation } from "@/features/auth/hooks/use-auth.ts";
 
 import { Button } from "@supportflow/ui/src/components/ui/button"; // Import thẳng component cụ thể
 

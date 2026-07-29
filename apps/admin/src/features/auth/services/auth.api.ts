@@ -1,4 +1,4 @@
-import { api } from "../../../services/client";
+import { api } from "@/services/client";
 
 export const AuthService = {
   async login(body: any) {

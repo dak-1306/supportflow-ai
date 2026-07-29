@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ragService } from "../services/rag.service";
-import { sendSuccess } from "../../../utils/api-response";
+import { sendSuccess } from "../../../shared/utils/api-response";
 
 export class RAGController {
   /**

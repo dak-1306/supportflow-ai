@@ -1,7 +1,7 @@
 import React from "react";
-import { useRag } from "../features/rag/hooks/useRag";
-import { RagTestForm } from "../features/rag/components/RagTestForm";
-import { RagTestResult } from "../features/rag/components/RagTestResult";
+import { useRag } from "@/features/rag/hooks/useRag";
+import { RagTestForm } from "@/features/rag/components/RagTestForm";
+import { RagTestResult } from "@/features/rag/components/RagTestResult";
 import { Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 

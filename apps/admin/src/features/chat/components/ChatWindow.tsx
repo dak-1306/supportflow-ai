@@ -7,15 +7,15 @@ import {
   CheckCircle2,
   Bot, // 🟢 Bổ sung icon Bot
 } from "lucide-react";
-import { useAdminChatStore } from "../stores/chat.store";
-import { useAdminChatSocket } from "../hooks/useAdminChatSocket";
+import { useAdminChatStore } from "@/features/chat/stores/chat.store";
+import { useAdminChatSocket } from "@/features/chat/hooks/useAdminChatSocket";
 import {
   useMessagesQuery,
   useSendMessageMutation,
   useTakeOverMutation,
   useResolveMutation,
   useEnableAIMutation, // 🟢 Bổ sung Mutation Bật AI
-} from "../hooks/useChatQueries";
+} from "@/features/chat/hooks/useChatQueries";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { Input } from "@supportflow/ui/src/components/ui/input";
 import { IMessage } from "@supportflow/shared-types";

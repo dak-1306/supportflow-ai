@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { ragApi, RAGQueryResult } from "../services/rag.api";
+import { ragApi, RAGQueryResult } from "@/features/rag/services/rag.api";
 import { useAuthStore } from "@/stores/auth.store";
 
 export const useRag = () => {

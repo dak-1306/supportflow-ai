@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { UserRepository } from "../repositories/user.repository";
-import { AppError } from "../../../utils/app-error";
+import { UserRepository } from "../../user/repositories/user.repository";
+import { AppError } from "../../../shared/utils/app-error";
 
 export class AuthService {
   private userRepository = new UserRepository();

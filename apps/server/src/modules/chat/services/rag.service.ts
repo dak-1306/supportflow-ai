@@ -3,8 +3,8 @@ import {
   qdrantClient,
   validateAiConfig,
   VECTOR_COLLECTION_NAME,
-} from "../../../config/ai.config";
-import { AppError } from "../../../utils/app-error";
+} from "@/shared/config/ai.config";
+import { AppError } from "../../../shared/utils/app-error";
 import {
   buildSupportSystemPrompt,
   RAG_FALLBACK_PHRASE,

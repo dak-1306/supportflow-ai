@@ -1,4 +1,4 @@
-import { api } from "../../../services/client";
+import { api } from "@/services/client";
 
 // Định nghĩa Interface dữ liệu trả về thống nhất từ Server
 export interface IDocument {
@@ -44,12 +44,9 @@ export const kbApi = {
     page: number,
     limit: number = 10,
   ): Promise<GetDocumentsResponse> => {
-    const response = await api.get(
-      `/workspaces/${workspaceId}/documents`,
-      {
-        params: { page, limit },
-      },
-    );
+    const response = await api.get(`/workspaces/${workspaceId}/documents`, {
+      params: { page, limit },
+    });
     return response.data.data;
   },
 

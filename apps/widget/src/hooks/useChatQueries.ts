@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { chatApi, MessagesResponse } from "../services/api";
+import { chatApi, MessagesResponse } from "@/services/api";
 import { IMessage } from "@supportflow/shared-types"; // Import dùng chung
 
 export const widgetKeys = {

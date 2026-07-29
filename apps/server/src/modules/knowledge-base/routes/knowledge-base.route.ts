@@ -1,15 +1,17 @@
 import { Router } from "express";
 import multer from "multer";
 import { knowledgeBaseController } from "../controllers/knowledge-base.controller";
-import { authMiddleware } from "../../../middlewares/auth.middleware";
-import { AppError } from "../../../utils/app-error";
+import {
+  authMiddleware,
+  requireRole,
+} from "../../../shared/middlewares/auth.middleware";
+import { AppError } from "../../../shared/utils/app-error";
 
-const router = Router({ mergeParams: true }); // Giúp lấy được workspaceId từ route cha
+const router = Router({ mergeParams: true });
 
-// Cấu hình multer lưu tạm file trong Memory dưới dạng Buffer
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // Giới hạn tối đa 10MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB
   fileFilter: (req, file, cb) => {
     const ext = file.originalname.split(".").pop()?.toLowerCase();
     if (ext === "pdf" || ext === "docx") {
@@ -22,17 +24,28 @@ const upload = multer({
   },
 });
 
-// Định nghĩa các endpoint chính thức cho Milestone 4
+// Quyền quản lý Knowledge Base (Chỉ Owner & Admin)
+const adminOnly = requireRole(["owner", "admin"]);
+
 router.post(
   "/upload",
   authMiddleware,
+  adminOnly,
   upload.single("file"),
   knowledgeBaseController.uploadDocument,
 );
-router.get("/", authMiddleware, knowledgeBaseController.getDocuments);
+
+router.get(
+  "/",
+  authMiddleware,
+  adminOnly,
+  knowledgeBaseController.getDocuments,
+);
+
 router.delete(
   "/:documentId",
   authMiddleware,
+  adminOnly,
   knowledgeBaseController.deleteDocument,
 );
 

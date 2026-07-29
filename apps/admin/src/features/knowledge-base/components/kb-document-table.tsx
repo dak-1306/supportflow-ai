@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   FileText,
 } from "lucide-react";
-import { IDocument } from "../services/kb.api";
+import { IDocument } from "@/features/knowledge-base/services/kb.api";
 import {
   Table,
   TableBody,

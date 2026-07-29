@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { knowledgeBaseService } from "../services/knowledge-base.service";
-import { AppError } from "../../../utils/app-error";
-import { sendSuccess } from "../../../utils/api-response"; // Sử dụng util của bạn
+import { AppError } from "../../../shared/utils/app-error";
+import { sendSuccess } from "../../../shared/utils/api-response"; // Sử dụng util của bạn
 
 export class KnowledgeBaseController {
   async uploadDocument(

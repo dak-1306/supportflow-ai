@@ -1,5 +1,5 @@
 import React from "react";
-import { Citation } from "../services/rag.api";
+import { Citation } from "@/features/rag/services/rag.api";
 import { FileText, Percent } from "lucide-react";
 
 interface CitationCardProps {

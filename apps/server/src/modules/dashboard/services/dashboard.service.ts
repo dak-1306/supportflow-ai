@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { DashboardRepository } from "../repositories/dashboard.repository";
-import { AppError } from "../../../utils/app-error"; // Import AppError
+import { AppError } from "../../../shared/utils/app-error"; // Import AppError
 
 export class DashboardService {
   static async getAnalytics(workspaceIdStr: string) {

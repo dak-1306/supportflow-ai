@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { User2, Bot } from "lucide-react";
 import { IMessage } from "@supportflow/shared-types";
-import { useChatStore } from "../store/chatStore";
+import { useChatStore } from "@/store/chatStore";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { CardContent } from "@supportflow/ui/src/components/ui/card";
 

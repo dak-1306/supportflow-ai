@@ -1,4 +1,4 @@
-import { ChatWidget } from "./components/ChatWidget";
+import { ChatWidget } from "@/components/ChatWidget";
 
 function App() {
   return (

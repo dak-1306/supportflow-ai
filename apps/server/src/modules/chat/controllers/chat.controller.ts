@@ -4,7 +4,7 @@ import {
   InitChatSchema,
   CreateMessageSchema,
 } from "../services/chat.service";
-import { sendSuccess } from "../../../utils/api-response";
+import { sendSuccess } from "../../../shared/utils/api-response";
 
 export class ChatController {
   private chatService = new ChatService();

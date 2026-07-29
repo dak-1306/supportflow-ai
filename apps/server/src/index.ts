@@ -2,18 +2,19 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-import authRoutes from "./modules/auth/routes/auth.route";
-import chatRouter from "./modules/chat/routes/chat.routes";
-import dashboardRouter from "./modules/dashboard/routes/dashboard.routes";
-import { knowledgeBaseRouter } from "./modules/knowledge-base/routes/knowledge-base.route";
-import ragRouter from "./modules/chat/routes/rag.route";
+import authRoutes from "@/modules/auth/routes/auth.route";
+import chatRouter from "@/modules/chat/routes/chat.routes";
+import dashboardRouter from "@/modules/dashboard/routes/dashboard.routes";
+import { knowledgeBaseRouter } from "@/modules/knowledge-base/routes/knowledge-base.route";
+import ragRouter from "@/modules/chat/routes/rag.route";
+import userRouter from "@/modules/user/routes/user.route";
 
-import { errorHandler } from "./middlewares/error.middleware";
-import { connectDatabase } from "./config/database";
+import { errorHandler } from "@/shared/middlewares/error.middleware";
+import { connectDatabase } from "@/shared/config/database";
 
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { initSocketHandler } from "./modules/chat/socket/socketHandler";
+import { initSocketHandler } from "@/modules/chat/socket/socketHandler";
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.use("/api/v1", chatRouter);
 app.use("/api/v1/workspaces/:workspaceId/documents", knowledgeBaseRouter);
 app.use("/api/v1/rag", ragRouter);
 app.use("/api/v1", dashboardRouter);
+app.use("/api/users", userRouter);
 
 app.get("/health", (req, res) => {
   res.json({ success: true, message: "OK", data: { timestamp: new Date() } });

@@ -1,6 +1,6 @@
 import React from "react";
-import { RAGQueryResult } from "../services/rag.api";
-import { CitationCard } from "./CitationCard";
+import { RAGQueryResult } from "@/features/rag/services/rag.api";
+import { CitationCard } from "@/features/rag/components/CitationCard";
 import { Bot, AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 
 interface RagTestResultProps {

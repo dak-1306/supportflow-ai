@@ -1,17 +1,10 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useLoginMutation } from "@/features/auth/hooks/use-auth.ts";
 
 import { Button } from "@supportflow/ui/src/components/ui/button"; // Import thẳng component cụ thể
 
-// Định nghĩa validation schema bằng Zod đồng bộ với Backend
-const loginSchema = z.object({
-  email: z.string().email("Email không đúng định dạng"),
-  password: z.string().min(6, "Mật khẩu phải tối thiểu 6 ký tự"),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
+import { loginSchema, LoginFormValues } from "@supportflow/shared-types"; // Import từ package validation
 
 export default function Login() {
   const loginMutation = useLoginMutation();

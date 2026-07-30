@@ -1,7 +1,7 @@
-import { ConversationRepository } from "../repositories/conversation.repository";
-import { MessageRepository } from "../repositories/message.repository";
-import { ragService } from "./rag.service"; // Nối RAG Service thay thế AI Service thuần
-import { AppError } from "../../../shared/utils/app-error";
+import { ConversationRepository } from "@/modules/chat/repositories/conversation.repository";
+import { MessageRepository } from "@/modules/chat/repositories/message.repository";
+import { ragService } from "@/modules/chat/services/rag.service"; // Nối RAG Service thay thế AI Service thuần
+import { AppError } from "@/shared/utils/app-error";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { ConversationStatus } from "@supportflow/shared-types";

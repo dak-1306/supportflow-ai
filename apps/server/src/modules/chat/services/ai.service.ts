@@ -1,6 +1,6 @@
-import { AppError } from "../../../shared/utils/app-error";
-import { getGoogleAI, validateAiConfig } from "../../../config/ai.config";
-import { buildSupportSystemPrompt } from "../prompts/support.prompt";
+import { AppError } from "@/shared/utils/app-error";
+import { getGoogleAI, validateAiConfig } from "@/shared/config/ai.config";
+import { buildSupportSystemPrompt } from "@/modules/chat/prompts/support.prompt";
 
 export class AIService {
   private modelName: string;

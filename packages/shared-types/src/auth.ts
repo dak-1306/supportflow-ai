@@ -1,18 +1,18 @@
-export interface IUser {
-  id: string;
-  workspaceId: string; // Thêm để xác định User thuộc doanh nghiệp nào
-  name: string;
-  email: string;
-  avatar?: string; // Thêm trường avatar (optional)
-  status: "active" | "inactive"; // Thêm để quản lý trạng thái tài khoản công tác
-  role: "admin" | "agent";
-  lastLogin?: string; // Thêm để hiển thị thời gian đăng nhập gần nhất trên UI
-  createdAt: string;
-  updatedAt: string;
-}
-
+import { z } from "zod";
+import { IUser } from "./user";
 export interface AuthResponse {
   user: IUser;
   accessToken: string;
   refreshToken: string;
 }
+
+export const loginSchema = z.object({
+  email: z.string().email("Email không đúng định dạng"),
+  password: z.string().min(6, "Mật khẩu phải tối thiểu 6 ký tự"),
+});
+
+export type LoginFormValues = z.infer<typeof loginSchema>;
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(1, "Refresh Token là bắt buộc"),
+});

@@ -6,6 +6,8 @@ import ChatPage from "@/features/chat/pages/ChatPage";
 import KnowledgeBasePage from "@/features/knowledge-base/pages/kb-page";
 import RagTestPage from "@/features/rag/pages/RagTestPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
+import { UserManagementPage } from "@/features/user/pages/UserManagementPage";
+
 import AdminLayout from "@/layouts/AdminLayout";
 
 // Nâng cấp ProtectedRoute hỗ trợ kiểm tra Role
@@ -50,7 +52,16 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/team"
+        element={
+          <ProtectedRoute allowedRoles={["owner", "admin"]}>
+            <AdminLayout>
+              <UserManagementPage />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/chat"
         element={

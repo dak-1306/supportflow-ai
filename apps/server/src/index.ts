@@ -61,7 +61,7 @@ app.use("/api/v1", chatRouter);
 app.use("/api/v1/workspaces/:workspaceId/documents", knowledgeBaseRouter);
 app.use("/api/v1/rag", ragRouter);
 app.use("/api/v1", dashboardRouter);
-app.use("/api/users", userRouter);
+app.use("/api/v1/users", userRouter);
 
 app.get("/health", (req, res) => {
   res.json({ success: true, message: "OK", data: { timestamp: new Date() } });

@@ -17,9 +17,19 @@ export class UserRepository extends BaseRepository<any> {
 
   // --- Phục vụ UserService ---
   // Lấy danh sách thành viên trong Workspace (ẩn password & sắp xếp mới nhất)
-  async findByWorkspace(workspaceId: string) {
+  async findByWorkspace(
+    workspaceId: string,
+    operatorRole?: "owner" | "admin" | "agent",
+  ) {
+    const query: Record<string, any> = { workspaceId };
+
+    // Nếu người xem là Admin -> Không hiển thị các tài khoản Owner
+    if (operatorRole === "admin") {
+      query.role = { $ne: "owner" };
+    }
+
     return this.model
-      .find({ workspaceId })
+      .find(query)
       .select("-password")
       .sort({ createdAt: -1 })
       .exec();

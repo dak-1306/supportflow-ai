@@ -4,11 +4,11 @@ import {
   validateAiConfig,
   VECTOR_COLLECTION_NAME,
 } from "@/shared/config/ai.config";
-import { AppError } from "../../../shared/utils/app-error";
+import { AppError } from "@/shared/utils/app-error";
 import {
   buildSupportSystemPrompt,
   RAG_FALLBACK_PHRASE,
-} from "../prompts/support.prompt";
+} from "@/modules/chat/prompts/support.prompt";
 
 const TOP_K_CHUNKS = 4;
 

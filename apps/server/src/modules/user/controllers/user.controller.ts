@@ -7,7 +7,10 @@ const userService = new UserService();
 export class UserController {
   async getUsers(req: Request, res: Response, next: NextFunction) {
     try {
-      const users = await userService.getWorkspaceUsers(req.user!.workspaceId);
+      const users = await userService.getWorkspaceUsers(
+        req.user!.workspaceId,
+        req.user!.role, // Truyền role để lọc
+      );
       sendSuccess(res, users);
     } catch (error) {
       next(error);
@@ -21,6 +24,7 @@ export class UserController {
         req.user!.workspaceId,
         req.body,
       );
+      console.log("New user created:", newUser);
       sendSuccess(res, newUser, "Tạo tài khoản thành công");
     } catch (error) {
       next(error);
@@ -35,6 +39,20 @@ export class UserController {
         req.user!.workspaceId,
       );
       sendSuccess(res, updatedUser, "Cập nhật trạng thái thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      await userService.deleteUser(
+        req.user!._id,
+        req.user!.role,
+        req.params.id,
+        req.user!.workspaceId,
+      );
+      sendSuccess(res, null, "Xóa tài khoản thành công");
     } catch (error) {
       next(error);
     }

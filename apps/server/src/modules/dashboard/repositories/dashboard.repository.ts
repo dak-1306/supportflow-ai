@@ -4,14 +4,23 @@ import { DocumentModel } from "../../knowledge-base/models/document.model";
 
 export class DashboardRepository {
   /**
+   * Helper ép kiểu an toàn cho Aggregation query
+   */
+  private static toObjectId(id: string | Types.ObjectId): Types.ObjectId {
+    return typeof id === "string" ? new Types.ObjectId(id) : id;
+  }
+
+  /**
    * Thống kê tổng quan các thẻ số liệu cho Conversations
    */
   static async getConversationStats(
-    workspaceId: Types.ObjectId,
+    workspaceId: string | Types.ObjectId,
     startOfToday: Date,
   ) {
+    const wsId = this.toObjectId(workspaceId);
+
     const stats = await ConversationModel.aggregate([
-      { $match: { workspaceId } },
+      { $match: { workspaceId: wsId } },
       {
         $group: {
           _id: null,
@@ -49,13 +58,15 @@ export class DashboardRepository {
    * Thống kê số lượng cuộc hội thoại theo từng ngày (7 ngày gần nhất)
    */
   static async getDailyChatVolume(
-    workspaceId: Types.ObjectId,
+    workspaceId: string | Types.ObjectId,
     sevenDaysAgo: Date,
   ) {
+    const wsId = this.toObjectId(workspaceId);
+
     return await ConversationModel.aggregate([
       {
         $match: {
-          workspaceId,
+          workspaceId: wsId,
           createdAt: { $gte: sevenDaysAgo },
         },
       },
@@ -70,25 +81,30 @@ export class DashboardRepository {
   }
 
   /**
-   * Lấy danh sách 5 cuộc trò chuyện gần nhất
+   * Lấy danh sách 5 cuộc trò chuyện gần nhất (Serialize sang JSON)
    */
   static async getRecentConversations(
-    workspaceId: Types.ObjectId,
+    workspaceId: string | Types.ObjectId,
     limit: number = 5,
   ) {
-    return await ConversationModel.find({ workspaceId })
+    const rawDocs = await ConversationModel.find({ workspaceId })
       .sort({ updatedAt: -1 })
       .limit(limit)
       .populate("assignedAdminId", "name email avatar")
-      .lean();
+      .exec();
+
+    // Biến đổi qua toJSON để đổi _id -> id và loại bỏ các trường ẩn
+    return rawDocs.map((doc) => doc.toJSON());
   }
 
   /**
    * Thống kê số lượng Document theo trạng thái
    */
-  static async getDocumentStats(workspaceId: Types.ObjectId) {
+  static async getDocumentStats(workspaceId: string | Types.ObjectId) {
+    const wsId = this.toObjectId(workspaceId);
+
     return await DocumentModel.aggregate([
-      { $match: { workspaceId } },
+      { $match: { workspaceId: wsId } },
       {
         $group: {
           _id: "$status",

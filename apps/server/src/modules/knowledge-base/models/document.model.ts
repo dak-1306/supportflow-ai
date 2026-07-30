@@ -1,19 +1,26 @@
 import { Schema, model, Document as MongooseDocument, Types } from "mongoose";
-import { transformToJSON } from "../../../shared/utils/mongoose-preset"; // Import preset dùng chung
+import {
+  IDocument as SharedIDocument,
+  DocumentType,
+  DocumentStatus,
+} from "@supportflow/shared-types";
+import { transformToJSON } from "../../../shared/utils/mongoose-preset";
 
-export interface IDocument extends MongooseDocument {
+// Kế thừa từ Shared Types nhưng đổi type ObjectId cho Mongoose
+export interface IDocumentModel
+  extends
+    Omit<
+      SharedIDocument,
+      "id" | "workspaceId" | "uploadedBy" | "createdAt" | "updatedAt"
+    >,
+    MongooseDocument {
   workspaceId: Types.ObjectId;
-  name: string;
-  type: "PDF" | "DOCX";
-  size: number;
-  status: "PROCESSING" | "READY" | "FAILED";
-  chunkCount: number;
   uploadedBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const documentSchema = new Schema<IDocument>(
+const documentSchema = new Schema<IDocumentModel>(
   {
     workspaceId: {
       type: Schema.Types.ObjectId,
@@ -21,12 +28,16 @@ const documentSchema = new Schema<IDocument>(
       ref: "Workspace",
     },
     name: { type: String, required: true },
-    type: { type: String, required: true, enum: ["PDF", "DOCX"] },
+    type: {
+      type: String,
+      required: true,
+      enum: ["PDF", "DOCX"] as DocumentType[],
+    },
     size: { type: Number, required: true },
     status: {
       type: String,
       required: true,
-      enum: ["PROCESSING", "READY", "FAILED"],
+      enum: ["PROCESSING", "READY", "FAILED"] as DocumentStatus[],
       default: "PROCESSING",
     },
     chunkCount: { type: Number, default: 0 },
@@ -34,8 +45,8 @@ const documentSchema = new Schema<IDocument>(
   },
   {
     timestamps: true,
-    toJSON: transformToJSON, // Tự động loại bỏ __v và đổi _id sang id khi chuyển sang JSON
+    toJSON: transformToJSON,
   },
 );
 
-export const DocumentModel = model<IDocument>("Document", documentSchema);
+export const DocumentModel = model<IDocumentModel>("Document", documentSchema);

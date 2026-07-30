@@ -16,7 +16,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
-        _id: string;
+        id: string;
         workspaceId: string;
         role: UserRole;
       };
@@ -46,7 +46,7 @@ export const authMiddleware = async (
 
       // Gán thông tin giải mã từ Token vào req.user
       req.user = {
-        _id: decoded.id,
+        id: decoded.id,
         workspaceId: decoded.workspaceId,
         role: decoded.role,
       };

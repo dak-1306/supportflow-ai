@@ -18,6 +18,7 @@ import {
 } from "@/features/chat/hooks/useChatQueries";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { Input } from "@supportflow/ui/src/components/ui/input";
+import { ConfirmModal } from "@/shared/components/ConfirmModal";
 import { IMessage } from "@supportflow/shared-types";
 
 export const ChatWindow: React.FC = () => {
@@ -38,6 +39,9 @@ export const ChatWindow: React.FC = () => {
 
   const [page, setPage] = useState(1);
   const [text, setText] = useState("");
+  const [openConfirmResolve, setOpenConfirmResolve] = useState(false); // State quản lý Modal Xác nhận Hoàn thành
+  const [openConfirmEnableAI, setOpenConfirmEnableAI] = useState(false); // State quản lý Modal Xác nhận Bật AI
+  const [openTakeOverConfirm, setOpenTakeOverConfirm] = useState(false); // State quản lý Modal Xác nhận Take Over
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -107,6 +111,20 @@ export const ChatWindow: React.FC = () => {
     emitAdminTyping(false);
     sendMessageMutation.mutate(msgText);
   };
+
+  const handleResolve = () => {
+    if (resolveMutation.isPending) return;
+    resolveMutation.mutate(activeConversationId);
+  };
+  const handleAIEnable = () => {
+    if (enableAIMutation.isPending) return;
+    enableAIMutation.mutate(activeConversationId);
+  };
+  const handleTakeOver = () => {
+    if (takeOverMutation.isPending) return;
+    takeOverMutation.mutate(activeConversationId);
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-background/50 h-full min-h-0 overflow-hidden">
       {/* 🌟 HANDOFF HEADER BANNER */}
@@ -121,7 +139,7 @@ export const ChatWindow: React.FC = () => {
           </div>
           <Button
             size="sm"
-            onClick={() => takeOverMutation.mutate(activeConversationId)}
+            onClick={() => setOpenTakeOverConfirm(true)}
             disabled={takeOverMutation.isPending}
             className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8 px-3 rounded-lg shadow-sm"
           >
@@ -145,7 +163,7 @@ export const ChatWindow: React.FC = () => {
             {/* NÚT BẬT AI BOT */}
             <button
               className="bg-purple-500 hover:bg-purple-600 text-white text-xs h-8 px-3 rounded-lg shadow-sm flex items-center"
-              onClick={() => enableAIMutation.mutate(activeConversationId)}
+              onClick={() => setOpenConfirmEnableAI(true)}
               disabled={enableAIMutation.isPending}
             >
               <Bot className="w-3.5 h-3.5 mr-1 text-white" />
@@ -155,7 +173,7 @@ export const ChatWindow: React.FC = () => {
             {/* NÚT HOÀN THÀNH */}
             <button
               className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs h-8 px-3 rounded-lg shadow-sm flex items-center"
-              onClick={() => resolveMutation.mutate(activeConversationId)}
+              onClick={() => setOpenConfirmResolve(true)}
               disabled={resolveMutation.isPending}
             >
               <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
@@ -257,6 +275,42 @@ export const ChatWindow: React.FC = () => {
           </Button>
         </form>
       </div>
+      {/* MODAL XÁC NHẬN HOÀN THÀNH */}
+      <ConfirmModal
+        isOpen={openConfirmResolve}
+        isLoading={resolveMutation.isPending}
+        onClose={() => setOpenConfirmResolve(false)}
+        onConfirm={handleResolve}
+        title="Xác nhận hoàn thành"
+        description="Bạn có chắc chắn muốn đánh dấu hội thoại này là hoàn thành không?"
+        confirmText="Hoàn thành"
+        cancelText="Hủy"
+        variant="primary"
+      />
+      {/* MODAL XÁC NHẬN BẬT AI BOT */}
+      <ConfirmModal
+        isOpen={openConfirmEnableAI}
+        isLoading={enableAIMutation.isPending}
+        onClose={() => setOpenConfirmEnableAI(false)}
+        onConfirm={handleAIEnable}
+        title="Xác nhận bật AI Bot"
+        description="Bạn có chắc chắn muốn bật lại AI Bot cho hội thoại này không?"
+        confirmText="Bật AI Bot"
+        cancelText="Hủy"
+        variant="primary"
+      />
+      {/* MODAL XÁC NHẬN TAKE OVER */}
+      <ConfirmModal
+        isOpen={openTakeOverConfirm}
+        isLoading={takeOverMutation.isPending}
+        onClose={() => setOpenTakeOverConfirm(false)}
+        onConfirm={handleTakeOver}
+        title="Xác nhận tiếp quản hội thoại"
+        description="Bạn có chắc chắn muốn tiếp quản hội thoại này không?"
+        confirmText="Tiếp quản"
+        cancelText="Hủy"
+        variant="primary"
+      />
     </div>
   );
 };

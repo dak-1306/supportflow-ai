@@ -1,47 +1,21 @@
-// src/features/knowledge-base/pages/kb-page.tsx
 import * as React from "react";
 import { useKb } from "@/features/knowledge-base/hooks/use-kb";
 import { KbUploadZone } from "@/features/knowledge-base/components/kb-upload-zone";
 import { KbDocumentTable } from "@/features/knowledge-base/components/kb-document-table";
 import { Button } from "@supportflow/ui/src/components/ui/button";
-import { toast } from "sonner";
 
 export default function KnowledgeBasePage() {
   const [currentPage, setCurrentPage] = React.useState(1);
-  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
-  // Gọi hook tùy biến tích hợp sẵn cơ chế Polling khi có file PROCESSING
   const {
     documents,
     pagination,
     isLoading,
     isUploading,
+    isDeleting,
     uploadDocument,
     deleteDocument,
   } = useKb(currentPage, 10);
-
-  const handleDelete = async (documentId: string) => {
-    if (
-      !confirm(
-        "Bạn có chắc chắn muốn xóa tài liệu này? Dữ liệu Vector liên quan sẽ bị hủy bỏ hoàn toàn.",
-      )
-    )
-      return;
-
-    setDeletingId(documentId);
-    try {
-      await deleteDocument(documentId);
-      toast.success("Xóa tài liệu thành công", {
-        description: "Tài liệu đã được xóa khỏi hệ thống.",
-      });
-    } catch (error: any) {
-      toast.error("Lỗi xóa tài liệu", {
-        description: error.message || "Không thể xóa tài liệu.",
-      });
-    } finally {
-      setDeletingId(null);
-    }
-  };
 
   return (
     <div className="flex flex-col p-6 lg:p-8 gap-6 max-w-6xl mx-auto w-full">
@@ -67,11 +41,12 @@ export default function KnowledgeBasePage() {
           </h2>
         </div>
 
+        {/* Chỉ cần truyền duy nhất hàm deleteDocument từ hook xuống */}
         <KbDocumentTable
           documents={documents}
           isLoading={isLoading}
-          onDelete={handleDelete}
-          deletingId={deletingId}
+          onDelete={deleteDocument}
+          isDeleting={isDeleting}
         />
 
         {/* Pagination Controls */}

@@ -1,4 +1,4 @@
-import { api } from "@/services/client";
+import { api } from "@/shared/services/client";
 import { LoginFormValues } from "@supportflow/shared-types";
 
 export const AuthService = {

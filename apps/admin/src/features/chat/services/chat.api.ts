@@ -1,4 +1,4 @@
-import { api } from "@/services/client";
+import { api } from "@/shared/services/client";
 
 export const adminChatApi = {
   getConversations: async (status = "OPEN", page = 1, limit = 20) => {

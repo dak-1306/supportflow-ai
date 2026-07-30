@@ -1,4 +1,4 @@
-import { api } from "@/services/client"; // Hoặc đường dẫn tương đối tới file axios của bạn
+import { api } from "@/shared/services/client"; // Hoặc đường dẫn tương đối tới file axios của bạn
 import { ConversationStatus } from "@supportflow/shared-types";
 
 export interface AnalyticsCardsData {

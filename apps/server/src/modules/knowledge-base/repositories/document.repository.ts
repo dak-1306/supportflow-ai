@@ -1,11 +1,8 @@
 import { Types } from "mongoose";
-import { DocumentModel, IDocument } from "../models/document.model";
-import {
-  DocumentChunkModel,
-  IDocumentChunk,
-} from "../models/document-chunk.model";
+import { DocumentModel, IDocumentModel } from "../models/document.model";
+import { DocumentChunkModel } from "../models/document-chunk.model";
+import { IDocument, IDocumentChunk } from "@supportflow/shared-types";
 
-// Định nghĩa cấu trúc chuẩn cho dữ liệu input khi tạo chunk, bắt buộc phải có các trường core
 export type CreateChunkInput = {
   documentId: Types.ObjectId;
   workspaceId: Types.ObjectId;
@@ -16,23 +13,27 @@ export type CreateChunkInput = {
 };
 
 export class DocumentRepository {
-  async createDocument(data: Partial<IDocument>): Promise<IDocument> {
-    return await DocumentModel.create(data);
+  async createDocument(data: Partial<IDocumentModel>): Promise<IDocument> {
+    const doc = await DocumentModel.create(data);
+    return doc.toJSON() as unknown as IDocument; // Dùng toJSON() để biến đổi _id -> id
   }
 
   async updateDocument(
     id: string | Types.ObjectId,
-    updateData: Partial<IDocument>,
+    updateData: Partial<IDocumentModel>,
   ): Promise<IDocument | null> {
-    return await DocumentModel.findByIdAndUpdate(id, updateData, {
+    const updated = await DocumentModel.findByIdAndUpdate(id, updateData, {
       new: true,
     }).exec();
+
+    return updated ? (updated.toJSON() as unknown as IDocument) : null;
   }
 
   async findDocumentById(
     id: string | Types.ObjectId,
   ): Promise<IDocument | null> {
-    return await DocumentModel.findById(id).exec();
+    const doc = await DocumentModel.findById(id).exec();
+    return doc ? (doc.toJSON() as unknown as IDocument) : null;
   }
 
   async findDocumentsByWorkspace(
@@ -41,7 +42,7 @@ export class DocumentRepository {
   ): Promise<{ docs: IDocument[]; total: number }> {
     const query = { workspaceId: new Types.ObjectId(workspaceId.toString()) };
 
-    const [docs, total] = await Promise.all([
+    const [rawDocs, total] = await Promise.all([
       DocumentModel.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -50,19 +51,24 @@ export class DocumentRepository {
       DocumentModel.countDocuments(query).exec(),
     ]);
 
+    // Gọi toJSON() để kích hoạt transformToJSON (chuyển _id thành id, xóa __v)
+    const docs = rawDocs.map((doc) => doc.toJSON() as unknown as IDocument);
+
     return { docs, total };
   }
 
   async deleteDocument(id: string | Types.ObjectId): Promise<IDocument | null> {
-    return await DocumentModel.findByIdAndDelete(id).exec();
+    const deleted = await DocumentModel.findByIdAndDelete(id).exec();
+    return deleted ? (deleted.toJSON() as unknown as IDocument) : null;
   }
 
-  // Thay đổi ở đây: Ép kiểu tường minh qua Unknown để xử lý triệt để lỗi kiểu của Mongoose insertMany
   async createChunks(
     chunksData: CreateChunkInput[],
   ): Promise<IDocumentChunk[]> {
     const result = await DocumentChunkModel.insertMany(chunksData);
-    return result as unknown as IDocumentChunk[];
+    return (result as any[]).map(
+      (chunk) => chunk.toJSON() as unknown as IDocumentChunk,
+    );
   }
 
   async deleteChunksByDocumentId(

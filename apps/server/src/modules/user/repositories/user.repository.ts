@@ -7,8 +7,18 @@ export class UserRepository extends BaseRepository<any> {
   }
 
   // --- Phục vụ AuthService & UserService ---
-  async findByEmail(email: string) {
+
+  /**
+   * Lưu ý: Khi Auth cần lấy password để so sánh Bcrypt,
+   * ta query Mongoose Document trực tiếp
+   */
+  async findByEmailWithPassword(email: string) {
     return this.model.findOne({ email: email.toLowerCase() }).exec();
+  }
+
+  async findByEmail(email: string) {
+    const doc = await this.model.findOne({ email: email.toLowerCase() }).exec();
+    return doc ? doc.toJSON() : null;
   }
 
   async updateLastLogin(userId: string): Promise<void> {
@@ -16,27 +26,24 @@ export class UserRepository extends BaseRepository<any> {
   }
 
   // --- Phục vụ UserService ---
-  // Lấy danh sách thành viên trong Workspace (ẩn password & sắp xếp mới nhất)
   async findByWorkspace(
     workspaceId: string,
     operatorRole?: "owner" | "admin" | "agent",
   ) {
     const query: Record<string, any> = { workspaceId };
 
-    // Nếu người xem là Admin -> Không hiển thị các tài khoản Owner
     if (operatorRole === "admin") {
       query.role = { $ne: "owner" };
     }
 
-    return this.model
-      .find(query)
-      .select("-password")
-      .sort({ createdAt: -1 })
-      .exec();
+    const docs = await this.model.find(query).sort({ createdAt: -1 }).exec();
+
+    // toJSON đã tự động xóa trường password theo định nghĩa Schema
+    return docs.map((doc) => doc.toJSON());
   }
 
-  // Tìm một user trong Workspace cụ thể (dùng khi check đổi trạng thái / cập nhật)
   async findByIdAndWorkspace(userId: string, workspaceId: string) {
-    return this.model.findOne({ _id: userId, workspaceId }).exec();
+    const doc = await this.model.findOne({ _id: userId, workspaceId }).exec();
+    return doc ? doc.toJSON() : null;
   }
 }

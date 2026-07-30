@@ -1,18 +1,21 @@
 import { Schema, model, Document as MongooseDocument, Types } from "mongoose";
-import { transformToJSON } from "../../../shared/utils/mongoose-preset"; // Import preset dùng chung
+import { IDocumentChunk as SharedIDocumentChunk } from "@supportflow/shared-types";
+import { transformToJSON } from "../../../shared/utils/mongoose-preset";
 
-export interface IDocumentChunk extends MongooseDocument {
+export interface IDocumentChunkModel
+  extends
+    Omit<
+      SharedIDocumentChunk,
+      "id" | "documentId" | "workspaceId" | "createdAt" | "updatedAt"
+    >,
+    MongooseDocument {
   documentId: Types.ObjectId;
   workspaceId: Types.ObjectId;
-  chunkIndex: number;
-  content: string;
-  vectorId: string;
-  page: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const documentChunkSchema = new Schema<IDocumentChunk>(
+const documentChunkSchema = new Schema<IDocumentChunkModel>(
   {
     documentId: {
       type: Schema.Types.ObjectId,
@@ -31,13 +34,13 @@ const documentChunkSchema = new Schema<IDocumentChunk>(
   },
   {
     timestamps: true,
-    toJSON: transformToJSON, // Tự động loại bỏ __v và đổi _id sang id khi chuyển sang JSON
+    toJSON: transformToJSON,
   },
 );
 
 documentChunkSchema.index({ workspaceId: 1, documentId: 1 });
 
-export const DocumentChunkModel = model<IDocumentChunk>(
+export const DocumentChunkModel = model<IDocumentChunkModel>(
   "DocumentChunk",
   documentChunkSchema,
 );

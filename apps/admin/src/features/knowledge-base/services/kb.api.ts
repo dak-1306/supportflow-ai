@@ -1,24 +1,6 @@
-import { api } from "@/services/client";
-
-// Định nghĩa Interface dữ liệu trả về thống nhất từ Server
-export interface IDocument {
-  _id: string;
-  workspaceId: string;
-  name: string;
-  type: "PDF" | "DOCX";
-  size: number;
-  status: "PROCESSING" | "READY" | "FAILED";
-  chunkCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface GetDocumentsResponse {
-  docs: IDocument[];
-  total: number;
-  page: number;
-  pages: number;
-}
+// src/features/knowledge-base/services/kb.api.ts
+import { api } from "@/shared/services/client";
+import { IDocument, GetDocumentsResponse } from "@supportflow/shared-types";
 
 export const kbApi = {
   uploadDocument: async (
@@ -28,7 +10,6 @@ export const kbApi = {
     const formData = new FormData();
     formData.append("file", file);
 
-    // Khớp hoàn toàn với cấu trúc route /workspaces/:workspaceId/documents
     const response = await api.post(
       `/workspaces/${workspaceId}/documents/upload`,
       formData,

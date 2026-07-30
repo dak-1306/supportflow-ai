@@ -4,7 +4,7 @@ import {
   documentRepository,
   CreateChunkInput,
 } from "../repositories/document.repository";
-import { IDocument } from "../models/document.model";
+import { IDocument } from "@supportflow/shared-types";
 import { DocumentExtractor } from "../utils/document-extractor";
 import {
   getGoogleAI,
@@ -79,10 +79,10 @@ export class KnowledgeBaseService {
       uploadedBy: userId ? new Types.ObjectId(userId) : undefined,
     });
 
-    this.processDocumentBackground(document._id.toString(), file.buffer).catch(
+    this.processDocumentBackground(document.id.toString(), file.buffer).catch(
       async (err) => {
-        console.error(`Lỗi xử lý tài liệu chạy ngầm ${document._id}:`, err);
-        await documentRepository.updateDocument(document._id.toString(), {
+        console.error(`Lỗi xử lý tài liệu chạy ngầm ${document.id}:`, err);
+        await documentRepository.updateDocument(document.id.toString(), {
           status: "FAILED",
         });
       },
@@ -149,8 +149,8 @@ export class KnowledgeBaseService {
 
       for (const chunk of processedChunks) {
         mongoChunks.push({
-          documentId: document._id as Types.ObjectId,
-          workspaceId: document.workspaceId,
+          documentId: document.id as unknown as Types.ObjectId,
+          workspaceId: document.workspaceId as unknown as Types.ObjectId,
           chunkIndex: chunk.index,
           content: chunk.content, // Đảm bảo ghi nhận text riêng biệt
           vectorId: chunk.vectorId,

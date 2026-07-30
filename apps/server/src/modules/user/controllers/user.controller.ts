@@ -47,7 +47,7 @@ export class UserController {
   async deleteUser(req: Request, res: Response, next: NextFunction) {
     try {
       await userService.deleteUser(
-        req.user!._id,
+        req.user!.id,
         req.user!.role,
         req.params.id,
         req.user!.workspaceId,

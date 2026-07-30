@@ -1,4 +1,4 @@
-import { api } from "@/services/client";
+import { api } from "@/shared/services/client";
 import { IUser, CreateUserDto } from "@supportflow/shared-types";
 
 export const userApi = {

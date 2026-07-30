@@ -1,22 +1,24 @@
 import { ConversationModel, IConversation } from "../models/Conversation";
 import { Types } from "mongoose";
 import { ConversationStatus } from "@supportflow/shared-types";
+
 export class ConversationRepository {
-  async findById(id: string): Promise<IConversation | null> {
-    return ConversationModel.findById(id);
+  async findById(id: string): Promise<any | null> {
+    const doc = await ConversationModel.findById(id).exec();
+    return doc ? doc.toJSON() : null;
   }
 
-  async findActiveByCustomerId(
-    customerId: string,
-  ): Promise<IConversation | null> {
-    return ConversationModel.findOne({
+  async findActiveByCustomerId(customerId: string): Promise<any | null> {
+    const doc = await ConversationModel.findOne({
       customerId,
       status: { $ne: "RESOLVED" },
-    });
+    }).exec();
+    return doc ? doc.toJSON() : null;
   }
 
-  async create(data: Partial<IConversation>): Promise<IConversation> {
-    return ConversationModel.create(data);
+  async create(data: Partial<IConversation>): Promise<any> {
+    const doc = await ConversationModel.create(data);
+    return doc.toJSON();
   }
 
   async findByWorkspace(
@@ -25,27 +27,27 @@ export class ConversationRepository {
     page = 1,
     limit = 20,
   ): Promise<{ conversations: any[]; total: number }> {
-    const matchQuery: any = { workspaceId: new Types.ObjectId(workspaceId) };
+    // Query dùng riêng cho Aggregate (Cần ObjectId)
+    const matchQueryAggregate: any = {
+      workspaceId: new Types.ObjectId(workspaceId),
+    };
+
+    // Query dùng cho Mongoose Count (Truyền string bình thường)
+    const matchQueryCount: any = { workspaceId };
+
     if (status && status !== "ALL") {
-      matchQuery.status = status;
+      matchQueryAggregate.status = status;
+      matchQueryCount.status = status;
     }
 
     const skip = (page - 1) * limit;
 
-    // Chạy song song query đếm tổng số lượng và query aggregate lấy dữ liệu kèm tin nhắn cuối
     const [rawConversations, total] = await Promise.all([
       ConversationModel.aggregate([
-        // 1. Lọc dữ liệu theo workspace và status
-        { $match: matchQuery },
-
-        // 2. Sắp xếp theo thời gian cập nhật mới nhất
+        { $match: matchQueryAggregate },
         { $sort: { updatedAt: -1 } },
-
-        // 3. Phân trang trực tiếp trong database
         { $skip: skip },
         { $limit: limit },
-
-        // 4. JOIN qua bảng messages (MongoDB lưu mặc định tên collection là 'messages')
         {
           $lookup: {
             from: "messages",
@@ -54,8 +56,6 @@ export class ConversationRepository {
             as: "chatMessages",
           },
         },
-
-        // 5. Trích xuất text của tin nhắn cuối cùng (nếu có)
         {
           $addFields: {
             lastMessage: {
@@ -73,32 +73,24 @@ export class ConversationRepository {
             },
           },
         },
-
-        // 6. Loại bỏ mảng tin nhắn trung gian để tối ưu hóa băng thông trả về
         {
           $project: {
             chatMessages: 0,
           },
         },
       ]),
-      ConversationModel.countDocuments(matchQuery),
+      ConversationModel.countDocuments(matchQueryCount), // Dùng matchQueryCount an toàn hơn
     ]);
 
-    // Chuyển đổi các kết quả Aggregate thô thành Mongoose Document ảo
-    // để các Virtuals toJSON (đổi _id -> id, ẩn __v) hoạt động mượt mà
+    // Hydrate & convert to JSON sạch (đổi _id -> id, xóa __v)
     const conversations = rawConversations.map((rawDoc) => {
       const doc = ConversationModel.hydrate(rawDoc);
-      // Đảm bảo trường lastMessage không bị mất khi hydrate
       const json = doc.toJSON();
       if (rawDoc.lastMessage) {
         json.lastMessage = rawDoc.lastMessage;
       }
       return json;
     });
-
-    console.log(
-      `Retrieved ${conversations.length} conversations for workspace ${workspaceId} with status ${status || "ALL"}. Total: ${total}`,
-    );
 
     return { conversations, total };
   }
@@ -118,8 +110,12 @@ export class ConversationRepository {
       updateData.endedAt = new Date();
     }
 
-    return ConversationModel.findByIdAndUpdate(conversationId, updateData, {
-      new: true,
-    });
+    const updatedDoc = await ConversationModel.findByIdAndUpdate(
+      conversationId,
+      updateData,
+      { new: true },
+    ).exec();
+
+    return updatedDoc ? updatedDoc.toJSON() : null;
   }
 }

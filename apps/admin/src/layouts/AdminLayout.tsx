@@ -30,6 +30,7 @@ import {
 } from "@supportflow/ui/src/components/ui/dropdown-menu";
 import { useAdminChatSocket } from "@/features/chat/hooks/useAdminChatSocket";
 import { NotificationBell } from "@/features/chat/components/NotificationBell";
+import { ConfirmModal } from "@/shared/components/ConfirmModal";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -51,6 +52,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     logout: state.logout,
   }));
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [openConfirmLogout, setOpenConfirmLogout] = useState(false);
 
   useAdminChatSocket();
 
@@ -160,7 +162,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <Button
           variant="ghost"
           className="w-full justify-center gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/5 flex items-center"
-          onClick={handleLogout}
+          onClick={() => setOpenConfirmLogout(true)}
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Đăng xuất
@@ -240,7 +242,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={handleLogout}
+                  onClick={() => setOpenConfirmLogout(true)}
                   className="text-destructive focus:bg-destructive/5 cursor-pointer"
                 >
                   Đăng xuất
@@ -255,6 +257,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="max-w-7xl mx-auto h-full min-h-0 flex flex-col">
             {children}
           </div>
+          <ConfirmModal
+            isOpen={openConfirmLogout}
+            onClose={() => setOpenConfirmLogout(false)}
+            onConfirm={handleLogout}
+            title="Xác nhận đăng xuất"
+            description="Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?"
+            confirmText="Đăng xuất"
+            cancelText="Hủy"
+            variant="danger"
+          />
         </main>
       </div>
     </div>

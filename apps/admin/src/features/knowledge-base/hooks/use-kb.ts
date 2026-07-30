@@ -5,7 +5,6 @@ import { useAuthStore } from "@/stores/auth.store"; // Đường dẫn tới aut
 export const useKb = (page: number = 1, limit: number = 10) => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  console.log("useKb: user", user);
   const workspaceId = user?.workspaceId || "";
 
   // Query: Lấy danh sách tài liệu (Chỉ chạy khi có workspaceId)

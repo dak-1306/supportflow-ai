@@ -1,7 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { UserRepository } from "../../user/repositories/user.repository";
+import { workspaceService } from "../../workspace/services/workspace.service";
 import { AppError } from "../../../shared/utils/app-error";
+import { RegisterFormValues } from "@supportflow/shared-types";
 
 export class AuthService {
   private userRepository = new UserRepository();
@@ -28,6 +30,52 @@ export class AuthService {
     );
 
     return { accessToken, refreshToken };
+  }
+
+  /**
+   * Đăng ký tài khoản Owner mới & Tự động khởi tạo Workspace
+   */
+  async register(dto: RegisterFormValues) {
+    // 1. Kiểm tra Email đã tồn tại chưa
+    const existingUser = await this.userRepository.findByEmail(dto.email);
+    if (existingUser) {
+      throw new AppError("Email này đã được đăng ký trong hệ thống", 400);
+    }
+
+    // 2. Tự động tạo Workspace mặc định trước
+    const workspace = await workspaceService.createDefaultWorkspace(
+      dto.workspaceName,
+    );
+
+    // 3. Hash mật khẩu và tạo User với vai trò OWNER
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const newOwnerDoc = await this.userRepository.create({
+      name: dto.fullName,
+      email: dto.email.toLowerCase(),
+      password: hashedPassword,
+      role: "owner", // Mặc định là Owner khi đăng ký
+      workspaceId: workspace.id,
+      status: "active",
+    });
+
+    const user = newOwnerDoc.toJSON ? newOwnerDoc.toJSON() : newOwnerDoc;
+
+    // 4. Sinh bộ AccessToken & RefreshToken để tự động đăng nhập luôn
+    const tokens = this.generateTokens(user);
+    await this.userRepository.updateLastLogin(user.id);
+
+    // 5. Cấu hình sẵn đoạn mã Script nhúng Widget với workspaceId vừa tạo
+    const cdnUrl =
+      process.env.WIDGET_CDN_URL || "https://cdn.supportflow.com/widget.js";
+    const embedScript = `<script>window.SupportFlowConfig={workspaceId:"${workspace.id}"};</script>\n<script async src="${cdnUrl}"></script>`;
+
+    // 6. Trả về thông tin User, Workspace, Tokens và Mã Script
+    return {
+      user,
+      workspace,
+      ...tokens,
+      embedScript,
+    };
   }
 
   async login(email: string, password: string) {
@@ -76,3 +124,5 @@ export class AuthService {
     }
   }
 }
+
+export const authService = new AuthService();

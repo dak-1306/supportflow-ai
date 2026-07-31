@@ -11,6 +11,8 @@ import { UserManagementPage } from "@/features/user/pages/UserManagementPage";
 import AdminLayout from "@/layouts/AdminLayout";
 import { WorkspaceSettingsPage } from "@/features/workspace/pages/WorkspaceSettingsPage";
 import { ProfilePage } from "@/features/profile/pages/ProfilePage";
+import Register from "@/features/auth/pages/Register";
+import OnboardingPage from "@/features/workspace/pages/OnboardingPage";
 
 // Nâng cấp ProtectedRoute hỗ trợ kiểm tra Role
 interface ProtectedRouteProps {
@@ -42,6 +44,8 @@ export default function AppRoutes() {
     <Routes>
       {/* Route công khai */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
 
       {/* Các Route Admin bọc trong AdminLayout */}
       <Route

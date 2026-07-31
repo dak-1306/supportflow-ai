@@ -10,10 +10,21 @@ export class WorkspaceService {
 
   async getWorkspaceById(workspaceId: string): Promise<IWorkspace> {
     const workspace = await this.workspaceRepository.findById(workspaceId);
-    if (!workspace) {
-      throw new AppError("Workspace không tồn tại.", 404);
-    }
-    return workspace as IWorkspace;
+    if (!workspace) throw new AppError("Workspace không tồn tại", 404);
+
+    const cdnUrl =
+      process.env.WIDGET_CDN_URL || "https://cdn.supportflow.com/widget.js";
+
+    // Sinh động mã script dựa trên workspace.id
+    const embedScript = `<script>
+  window.SupportFlowConfig = { workspaceId: "${workspace.id}" };
+</script>
+<script async src="${cdnUrl}"></script>`;
+
+    return {
+      ...workspace,
+      embedScript, // Trả kèm trường này cho Frontend
+    };
   }
 
   /**
@@ -55,6 +66,24 @@ export class WorkspaceService {
       logo: workspace.logo,
       widgetConfig: workspace.widgetConfig,
     };
+  }
+
+  async createDefaultWorkspace(workspaceName?: string): Promise<IWorkspace> {
+    const name =
+      workspaceName && workspaceName.trim() !== ""
+        ? workspaceName.trim()
+        : "Workspace của tôi";
+
+    // Các giá trị aiConfig và widgetConfig sẽ tự lấy default từ Mongoose Schema
+    const newWorkspace = await this.workspaceRepository.create({
+      name: name,
+    });
+
+    if (!newWorkspace) {
+      throw new AppError("Không thể khởi tạo Workspace.", 500);
+    }
+
+    return newWorkspace as IWorkspace;
   }
 }
 

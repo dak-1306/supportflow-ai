@@ -22,6 +22,7 @@ export interface IWorkspace {
   status: WorkspaceStatus;
   aiConfig: IWorkspaceAIConfig;
   widgetConfig: IWorkspaceWidgetConfig;
+  embedScript?: string; // Trường này sẽ được trả về cho Frontend, nhưng không lưu trong DB
   createdAt: string | Date;
   updatedAt: string | Date;
 }

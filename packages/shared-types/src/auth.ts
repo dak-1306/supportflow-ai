@@ -16,3 +16,12 @@ export type LoginFormValues = z.infer<typeof loginSchema>;
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1, "Refresh Token là bắt buộc"),
 });
+
+export const registerSchema = z.object({
+  email: z.string().email("Email không đúng định dạng"),
+  password: z.string().min(6, "Mật khẩu phải tối thiểu 6 ký tự"),
+
+  fullName: z.string().min(1, "Họ và tên là bắt buộc"),
+  workspaceName: z.string().optional(),
+});
+export type RegisterFormValues = z.infer<typeof registerSchema>;

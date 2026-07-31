@@ -33,3 +33,18 @@ export const refresh = async (
     next(error);
   }
 };
+
+export const register = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const dto = req.body;
+    const result = await authService.register(dto);
+
+    sendSuccess(res, result, "Đăng ký tài khoản thành công");
+  } catch (error) {
+    next(error);
+  }
+};

@@ -1,5 +1,5 @@
 import { api } from "@/shared/services/client";
-import { LoginFormValues } from "@supportflow/shared-types";
+import { LoginFormValues, RegisterFormValues } from "@supportflow/shared-types";
 
 export const AuthService = {
   async login(body: LoginFormValues) {
@@ -8,6 +8,10 @@ export const AuthService = {
   },
   async refresh(refreshToken: string) {
     const response = await api.post("/auth/refresh", { refreshToken });
+    return response.data;
+  },
+  async register(body: RegisterFormValues) {
+    const response = await api.post("/auth/register", body);
     return response.data;
   },
 };

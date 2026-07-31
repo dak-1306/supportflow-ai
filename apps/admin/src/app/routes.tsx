@@ -9,6 +9,8 @@ import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { UserManagementPage } from "@/features/user/pages/UserManagementPage";
 
 import AdminLayout from "@/layouts/AdminLayout";
+import { WorkspaceSettingsPage } from "@/features/workspace/pages/WorkspaceSettingsPage";
+import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 
 // Nâng cấp ProtectedRoute hỗ trợ kiểm tra Role
 interface ProtectedRouteProps {
@@ -90,6 +92,28 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRoles={["owner", "admin"]}>
             <AdminLayout>
               <RagTestPage />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspace-settings"
+        element={
+          <ProtectedRoute allowedRoles={["owner", "admin"]}>
+            <AdminLayout>
+              <WorkspaceSettingsPage />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute allowedRoles={["owner", "admin", "agent"]}>
+            <AdminLayout>
+              <ProfilePage />
             </AdminLayout>
           </ProtectedRoute>
         }

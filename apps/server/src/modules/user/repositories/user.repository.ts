@@ -16,6 +16,10 @@ export class UserRepository extends BaseRepository<any> {
     return this.model.findOne({ email: email.toLowerCase() }).exec();
   }
 
+  async findByIdWithPassword(userId: string) {
+    return this.model.findById(userId).exec();
+  }
+
   async findByEmail(email: string) {
     const doc = await this.model.findOne({ email: email.toLowerCase() }).exec();
     return doc ? doc.toJSON() : null;

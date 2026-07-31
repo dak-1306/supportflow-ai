@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { UserRepository } from "../repositories/user.repository";
 import { AppError } from "@/shared/utils/app-error";
 import { CreateUserDto } from "@supportflow/shared-types";
@@ -5,7 +6,53 @@ import { CreateUserDto } from "@supportflow/shared-types";
 export class UserService {
   private userRepo = new UserRepository();
 
-  // 1. Lấy danh sách nhân viên trong cùng Workspace
+  // 1. Lấy thông tin cá nhân hiện tại
+  async getProfile(userId: string) {
+    const user = await this.userRepo.findById(userId);
+    if (!user) throw new AppError("Không tìm thấy người dùng", 404);
+    return user;
+  }
+
+  // 2. Cập nhật thông tin cá nhân (Tên, Avatar)
+  async updateProfile(userId: string, dto: { name?: string; avatar?: string }) {
+    const updatedUser = await this.userRepo.update(userId, {
+      ...(dto.name && { name: dto.name }),
+      ...(dto.avatar !== undefined && { avatar: dto.avatar }),
+    });
+
+    if (!updatedUser) throw new AppError("Cập nhật thông tin thất bại", 400);
+    return updatedUser;
+  }
+
+  // 3. Đổi mật khẩu
+  async changePassword(
+    userId: string,
+    dto: { currentPassword?: string; newPassword?: string },
+  ) {
+    const { currentPassword, newPassword } = dto;
+    if (!currentPassword || !newPassword) {
+      throw new AppError("Vui lòng nhập đầy đủ mật khẩu cũ và mới!", 400);
+    }
+
+    const userDoc = await this.userRepo.findByIdWithPassword(userId);
+    if (!userDoc) throw new AppError("Không tìm thấy người dùng", 404);
+
+    // 1. Kiểm tra mật khẩu hiện tại
+    const isMatch = await bcrypt.compare(currentPassword, userDoc.password);
+    if (!isMatch) {
+      throw new AppError("Mật khẩu hiện tại không chính xác!", 400);
+    }
+
+    // 2. Gán trực tiếp mật khẩu mới chưa băm
+    userDoc.password = newPassword;
+
+    // 3. Gọi .save() -> Mongoose pre('save') sẽ tự động băm mật khẩu đúng 1 lần!
+    await userDoc.save();
+
+    return true;
+  }
+
+  // 4. Lấy danh sách nhân viên trong cùng Workspace
   async getWorkspaceUsers(
     workspaceId: string,
     operatorRole: "owner" | "admin" | "agent",
@@ -13,7 +60,7 @@ export class UserService {
     return await this.userRepo.findByWorkspace(workspaceId, operatorRole);
   }
 
-  // 2. Tạo tài khoản mới với kiểm tra phân quyền
+  // 5. Tạo tài khoản mới với kiểm tra phân quyền
   async createUser(
     operatorRole: "owner" | "admin" | "agent",
     workspaceId: string,
@@ -41,7 +88,7 @@ export class UserService {
     return newUser;
   }
 
-  // 3. Đổi trạng thái active/inactive
+  // 6. Đổi trạng thái active/inactive
   async toggleUserStatus(
     operatorRole: "owner" | "admin" | "agent",
     targetUserId: string,
@@ -66,14 +113,13 @@ export class UserService {
     return targetUser;
   }
 
-  // 4. Bổ sung hàm deleteUser với các quy tắc phân quyền chuẩn
+  // 7. Xóa tài khoản
   async deleteUser(
     operatorUserId: string,
     operatorRole: "owner" | "admin" | "agent",
     targetUserId: string,
     workspaceId: string,
   ) {
-    // Không cho phép tự xóa chính mình
     if (operatorUserId === targetUserId) {
       throw new AppError("Bạn không thể tự xóa tài khoản của chính mình!", 400);
     }
@@ -84,12 +130,10 @@ export class UserService {
     );
     if (!targetUser) throw new AppError("Không tìm thấy người dùng", 404);
 
-    // Không ai có thể xóa Owner
     if (targetUser.role === "owner") {
       throw new AppError("Không thể xóa tài khoản Owner!", 403);
     }
 
-    // Admin không được xóa Admin khác
     if (operatorRole === "admin" && targetUser.role === "admin") {
       throw new AppError("Admin không thể xóa tài khoản Admin khác!", 403);
     }

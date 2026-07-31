@@ -10,7 +10,7 @@ const WorkspaceSchema = new mongoose.Schema(
     // 1. Cấu hình AI mặc định cho Workspace
     aiConfig: {
       provider: { type: String, default: "gemini" },
-      model: { type: String, default: "gemini-1.5-flash" },
+      model: { type: String, default: "gemini-3.5-flash" },
       temperature: { type: Number, default: 0.7 },
       systemPrompt: {
         type: String,

@@ -1,42 +1,38 @@
-import { Model, Document } from "mongoose";
+import { Model } from "mongoose";
 
-export class BaseRepository<T extends Document> {
-  constructor(protected readonly model: Model<T>) {}
+// T dùng kiểu dữ liệu bất kỳ đại diện cho Plain Object trả về
+export class BaseRepository<T = Record<string, any>> {
+  constructor(protected readonly model: Model<any>) {}
 
-  async findById(id: string): Promise<Record<string, any> | null> {
+  async findById(id: string): Promise<T | null> {
     const doc = await this.model.findById(id).exec();
-    return doc ? doc.toJSON() : null;
+    return doc ? (doc.toJSON() as T) : null;
   }
 
-  async findOne(
-    filter: Record<string, any>,
-  ): Promise<Record<string, any> | null> {
+  async findOne(filter: Record<string, any>): Promise<T | null> {
     const doc = await this.model.findOne(filter).exec();
-    return doc ? doc.toJSON() : null;
+    return doc ? (doc.toJSON() as T) : null;
   }
 
-  async find(filter: Record<string, any> = {}): Promise<Record<string, any>[]> {
+  async find(filter: Record<string, any> = {}): Promise<T[]> {
     const docs = await this.model.find(filter).exec();
-    return docs.map((doc) => doc.toJSON());
+    return docs.map((doc) => doc.toJSON() as T);
   }
 
-  async create(item: any): Promise<Record<string, any>> {
+  async create(item: any): Promise<T> {
     const doc = await this.model.create(item);
-    return doc.toJSON();
+    return doc.toJSON() as T;
   }
 
-  async update(
-    id: string,
-    updateData: Record<string, any>,
-  ): Promise<Record<string, any> | null> {
+  async update(id: string, updateData: Record<string, any>): Promise<T | null> {
     const doc = await this.model
       .findByIdAndUpdate(id, updateData, { new: true })
       .exec();
-    return doc ? doc.toJSON() : null;
+    return doc ? (doc.toJSON() as T) : null;
   }
 
-  async delete(id: string): Promise<Record<string, any> | null> {
+  async delete(id: string): Promise<T | null> {
     const doc = await this.model.findByIdAndDelete(id).exec();
-    return doc ? doc.toJSON() : null;
+    return doc ? (doc.toJSON() as T) : null;
   }
 }

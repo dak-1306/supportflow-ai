@@ -11,6 +11,8 @@ interface ChatMessagesProps {
   showLoader: boolean;
   isFetching: boolean;
   onLoadMore: () => void;
+  welcomeMessage?: string;
+  botAvatar?: string;
 }
 
 export const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -19,6 +21,8 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
   showLoader,
   isFetching,
   onLoadMore,
+  welcomeMessage = "Xin chào! Chúng tôi có thể giúp gì cho bạn?",
+  botAvatar,
 }) => {
   const typingStatus = useChatStore((state) => state.typingStatus);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -36,7 +40,8 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
         ) : (
           <div className="space-y-4 pb-2">
-            {messages.length < totalInDb && (
+            {/* 1. Nút Tải tin nhắn cũ khi có Pagination */}
+            {messages.length < totalInDb && messages.length > 0 && (
               <div className="flex justify-center my-1">
                 <Button
                   variant="secondary"
@@ -50,24 +55,59 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
               </div>
             )}
 
+            {/* 2. Hiển thị Welcome Message mặc định từ Config khi chưa có lịch sử chat */}
+            {messages.length === 0 && welcomeMessage && (
+              <div className="flex gap-2.5 max-w-[85%] mr-auto animate-in fade-in duration-300">
+                <div className="flex h-6 w-6 shrink-0 select-none items-center justify-center rounded-md border border-border bg-card overflow-hidden">
+                  {botAvatar ? (
+                    <img
+                      src={botAvatar}
+                      alt="Bot"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Bot className="h-3.5 w-3.5 text-primary" />
+                  )}
+                </div>
+                <div className="relative px-3.5 py-2 text-sm rounded-lg bg-card text-foreground border border-border rounded-tl-none shadow-sm">
+                  <p className="leading-relaxed whitespace-pre-wrap">
+                    {welcomeMessage}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Danh sách các tin nhắn trong DB */}
             {messages.map((msg) => {
               const isCustomer = msg.sender === "CUSTOMER";
               return (
                 <div
                   key={msg.id}
-                  className={`flex gap-2.5 max-w-[85%] ${isCustomer ? "ml-auto flex-row-reverse" : "mr-auto"}`}
+                  className={`flex gap-2.5 max-w-[85%] ${
+                    isCustomer ? "ml-auto flex-row-reverse" : "mr-auto"
+                  }`}
                 >
                   {!isCustomer && (
-                    <div className="flex h-6 w-6 shrink-0 select-none items-center justify-center rounded-md border border-border bg-card">
+                    <div className="flex h-6 w-6 shrink-0 select-none items-center justify-center rounded-md border border-border bg-card overflow-hidden">
                       {msg.sender === "ADMIN" ? (
-                        <User2 className="h-3 w-3 text-primary" />
+                        <User2 className="h-3.5 w-3.5 text-primary" />
+                      ) : botAvatar ? (
+                        <img
+                          src={botAvatar}
+                          alt="Bot"
+                          className="h-full w-full object-cover"
+                        />
                       ) : (
-                        <Bot className="h-3 w-3 text-primary" />
+                        <Bot className="h-3.5 w-3.5 text-primary" />
                       )}
                     </div>
                   )}
                   <div
-                    className={`relative px-3.5 py-2 text-sm rounded-lg ${isCustomer ? "bg-primary text-primary-foreground rounded-tr-none shadow-sm" : "bg-card text-foreground border border-border rounded-tl-none"}`}
+                    className={`relative px-3.5 py-2 text-sm rounded-lg ${
+                      isCustomer
+                        ? "bg-primary text-primary-foreground rounded-tr-none shadow-sm"
+                        : "bg-card text-foreground border border-border rounded-tl-none"
+                    }`}
                   >
                     <p className="leading-relaxed whitespace-pre-wrap">
                       {msg.message}
@@ -79,13 +119,20 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
         )}
 
+        {/* 4. Indicator Trạng thái Đang gõ tin nhắn (Typing) */}
         {typingStatus.isTyping && (
           <div className="flex gap-2.5 max-w-[85%] mr-auto mt-4 pb-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card overflow-hidden">
               {typingStatus.sender === "ADMIN" ? (
-                <User2 className="h-3 w-3 text-primary" />
+                <User2 className="h-3.5 w-3.5 text-primary" />
+              ) : botAvatar ? (
+                <img
+                  src={botAvatar}
+                  alt="Bot"
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                <Bot className="h-3 w-3 text-purple-500 animate-pulse" />
+                <Bot className="h-3.5 w-3.5 text-purple-500 animate-pulse" />
               )}
             </div>
             <div className="bg-card border border-border px-3.5 py-2.5 rounded-lg rounded-tl-none flex flex-col gap-1 shadow-sm">

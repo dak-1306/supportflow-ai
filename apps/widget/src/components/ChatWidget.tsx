@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { useChatStore } from "@/store/chatStore";
 import { useChatSocket } from "@/hooks/useChatSocket";
@@ -6,14 +6,32 @@ import {
   useWidgetMessagesQuery,
   useWidgetSendMessageMutation,
 } from "@/hooks/useChatQueries";
-import { chatApi } from "@/services/api";
+import { chatApi } from "@/services/chat.api";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { Card } from "@supportflow/ui/src/components/ui/card";
 import { ChatHeader } from "@/components/ChatHeader";
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatInputForm } from "@/components/ChatInputForm";
+import { useWidgetConfig } from "@/hooks/useWidgetConfig";
 
 export const ChatWidget: React.FC = () => {
+  // 1. Fetch cấu hình widget từ DB
+  const { data: workspaceData } = useWidgetConfig();
+  const widgetConfig = workspaceData?.widgetConfig;
+
+  // 2. Tiêm đè biến --primary khi config có dữ liệu màu sắc
+  useEffect(() => {
+    const primaryColor = widgetConfig?.primaryColor;
+    if (primaryColor) {
+      const widgetContainer = document.getElementById(
+        "supportflow-widget-container",
+      );
+      if (widgetContainer) {
+        widgetContainer.style.setProperty("--primary", primaryColor);
+      }
+    }
+  }, [widgetConfig?.primaryColor]);
+
   const {
     isOpen,
     setIsOpen,
@@ -61,10 +79,19 @@ export const ChatWidget: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 font-sans flex flex-col items-end antialiased">
+    <div
+      id="supportflow-widget-container"
+      className="fixed bottom-5 right-5 z-50 font-sans flex flex-col items-end antialiased"
+    >
       {isOpen && (
         <Card className="border border-border bg-card shadow-md w-[380px] h-[550px] max-w-[calc(100vw-40px)] flex flex-col mb-4 overflow-hidden rounded-xl animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <ChatHeader onClose={handleToggleWidget} />
+          <ChatHeader
+            onClose={handleToggleWidget}
+            title={widgetConfig?.title}
+            botName={widgetConfig?.botName}
+            botAvatar={widgetConfig?.botAvatar}
+            logo={workspaceData?.logo}
+          />
 
           <ChatMessages
             messages={dbMessages}
@@ -72,6 +99,7 @@ export const ChatWidget: React.FC = () => {
             showLoader={showLoader}
             isFetching={isFetching}
             onLoadMore={() => setPage((prev) => prev + 1)}
+            welcomeMessage={widgetConfig?.welcomeMessage} // Truyền welcomeMessage xuống nếu ChatMessages có hỗ trợ
           />
 
           <ChatInputForm
@@ -94,7 +122,6 @@ export const ChatWidget: React.FC = () => {
           <MessageCircle className="w-5 h-5" />
         )}
 
-        {/* 🟢 HIỂN THỊ BADGE THÔNG BÁO TIN NHẮN MỚI KHI ĐÓNG WIDGET */}
         {!isOpen && unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold text-destructive-foreground animate-bounce shadow-sm">
             {unreadCount > 9 ? "9+" : unreadCount}

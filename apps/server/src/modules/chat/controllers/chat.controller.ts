@@ -120,7 +120,7 @@ export class ChatController {
   ) => {
     try {
       const { conversationId } = req.params;
-      const adminId = req.user!._id;
+      const adminId = req.user!.id;
       const { message } = CreateMessageSchema.parse(req.body);
 
       const savedMessage = await this.chatService.saveAdminMessage(

@@ -10,7 +10,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import logo from "@supportflow/ui/src/assets/logo.svg";
+import logo from "@supportflow/assets/imgs/logo.svg";
 import { useAuthStore } from "../stores/auth.store";
 
 // Shadcn UI Components
@@ -87,6 +87,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: "/team",
       icon: Users,
       allowedRoles: ["owner", "admin"],
+    },
+    {
+      name: "Cấu hình Workspace",
+      href: "/workspace-settings",
+      icon: Bot,
+      allowedRoles: ["owner", "admin"],
+    },
+    {
+      name: "Hồ sơ cá nhân",
+      href: "/profile",
+      icon: LayoutDashboard,
+      allowedRoles: ["owner", "admin", "agent"],
     },
   ];
 

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/index.js"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
     "pdf-parse": "^2.4.5",
     "pdf-parse-fork": "^1.2.0",
     "socket.io": "^4.8.3",
+    "tsc-alias": "^1.9.1",
     "uuid": "^14.0.1",
     "zod": "^4.4.3"
   },

@@ -1,1 +1,42 @@
 @import "@supportflow/ui/style.css";
+
+/* Ép các biến CSS từ :root xuống :host (phạm vi Shadow DOM) */
+:host {
+  /* Copy lại toàn bộ biến từ phần :root của @supportflow/ui/style.css vào đây */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0.005 285);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0.005 285);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0.005 285);
+  --primary: oklch(36.93% 0.14001 265.117);
+  --primary-foreground: oklch(0.985 0.002 285);
+  --secondary: oklch(0.965 0.003 285);
+  --secondary-foreground: oklch(0.205 0.005 285);
+  --muted: oklch(0.965 0.003 285);
+  --muted-foreground: oklch(0.552 0.016 285);
+  --accent: oklch(0.965 0.003 285);
+  --accent-foreground: oklch(0.205 0.005 285);
+  --destructive: oklch(0.6 0.18 25);
+  --border: oklch(0.92 0.004 285);
+  --input: oklch(0.92 0.004 285);
+  --ring: oklch(0.5 0.19 265);
+  --radius: 0.625rem;
+}
+
+/* Ép style của body cho thẻ div gốc bên trong Shadow DOM */
+#supportflow-app-root {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, "Inter Variable", sans-serif);
+  min-height: 100%;
+  width: 100%;
+
+  /* Đảm bảo border và outline hoạt động giống layer base */
+  border-color: var(--border);
+}
+
+#supportflow-app-root * {
+  border-color: var(--border);
+  outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+}

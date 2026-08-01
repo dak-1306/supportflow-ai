@@ -1,14 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 import path from "path";
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    cssInjectedByJsPlugin(), // Inject toàn bộ CSS vào file JS
+    // BỎ: cssInjectedByJsPlugin(),
   ],
   server: {
     port: 5174,
@@ -21,12 +20,12 @@ export default defineConfig({
   build: {
     emptyOutDir: true,
     cssCodeSplit: false,
-    assetsInlineLimit: 100000000, // Inline hình ảnh/icon dưới dạng Base64
+    assetsInlineLimit: 100000000,
     rollupOptions: {
       input: path.resolve(__dirname, "src/main.tsx"),
       output: {
-        format: "iife", // Đóng gói dạng IIFE để chạy ngay trên trình duyệt
-        entryFileNames: "widget.js", // Cố định tên file đầu ra
+        format: "iife",
+        entryFileNames: "widget.js",
         assetFileNames: "[name].[ext]",
         chunkFileNames: "[name].js",
       },

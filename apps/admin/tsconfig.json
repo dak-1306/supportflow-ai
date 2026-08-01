@@ -6,7 +6,6 @@
     "module": "ESNext",
     "skipLibCheck": true,
 
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
@@ -14,15 +13,15 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@supportflow/ui/*": ["../../packages/ui/*"] // Thêm dòng này để chỉ đường cho TypeScript tìm sang package ui
+      "@supportflow/ui/*": ["../../packages/ui/*"]
     }
   },
   "include": ["src"]

@@ -22,7 +22,8 @@
 
     "paths": {
       "@/*": ["./src/*"],
-      "@supportflow/ui/*": ["../../packages/ui/*"]
+      "@supportflow/ui/*": ["../../packages/ui/*"],
+      "@supportflow/shared-types": ["../../packages/shared-types/src/index.ts"]
     }
   },
   "include": ["src"]

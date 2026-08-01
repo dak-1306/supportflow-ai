@@ -7,7 +7,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@modules/*": ["src/modules/*"],
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["src/shared/*"],
+      "@supportflow/shared-types": ["../../packages/shared-types/src/index.ts"]
     }
   },
   "include": ["src/**/*"]

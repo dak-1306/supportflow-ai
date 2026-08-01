@@ -54,6 +54,9 @@ export class WorkspaceController {
   async getPublicWidgetConfig(req: Request, res: Response, next: NextFunction) {
     try {
       const { workspaceId } = req.params;
+      console.log(
+        `[WorkspaceController] Lấy cấu hình Widget công khai cho workspaceId: ${workspaceId}`,
+      );
       const widgetConfig =
         await workspaceService.getPublicWidgetConfig(workspaceId);
 

@@ -23,7 +23,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // 1. Cấu hình CORS cho phép cả Admin (5173) và Widget (5174) truy cập
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5500",
+];
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -59,14 +63,18 @@ initSocketHandler(io);
 // 3. Khai báo Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1", chatRouter);
+app.use("/api/v1/workspaces", workspaceRoutes);
 app.use("/api/v1/workspaces/:workspaceId/documents", knowledgeBaseRouter);
 app.use("/api/v1/rag", ragRouter);
 app.use("/api/v1", dashboardRouter);
 app.use("/api/v1/users", userRouter);
-app.use("/api/v1/workspaces", workspaceRoutes);
 
 app.get("/health", (req, res) => {
-  res.json({ success: true, message: "OK", data: { timestamp: new Date() } });
+  res.status(200).json({
+    status: "OK",
+    uptime: process.uptime(), // Thời gian server đã chạy (giây)
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Global Error Handler (Luôn đặt dưới cùng của các Route)

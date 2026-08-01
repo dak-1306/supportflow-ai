@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Nhúng SupportFlow Widget</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        padding: 40px;
+        background-color: #f8fafc;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Website Khách Hàng (Demo Test)</h1>
+    <p>
+      Đây là trang web giả lập để kiểm tra Widget có nổi lên ở góc dưới màn hình
+      không.
+    </p>
+
+    <!-- ==================== MÃ NHÚNG SUPPORTFLOW ==================== -->
+    <script>
+      window.SupportFlowConfig = {
+        workspaceId: "6a6ca6d972cce834724f0002", // ID test
+      };
+    </script>
+    <!-- Trỏ đường dẫn tương đối tới file widget.js vừa build -->
+    <script async src="./dist/widget.js"></script>
+    <!-- ============================================================= -->
+  </body>
+</html>

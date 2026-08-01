@@ -2,13 +2,13 @@
   "extends": "@supportflow/config/tsconfig.server.json",
   "compilerOptions": {
     "outDir": "./dist",
+    "rootDir": "./src",
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
       "@modules/*": ["src/modules/*"],
-      "@shared/*": ["src/shared/*"],
-      "@supportflow/shared-types": ["../../packages/shared-types/src/index.ts"]
+      "@shared/*": ["src/shared/*"]
     }
   },
   "include": ["src/**/*"]

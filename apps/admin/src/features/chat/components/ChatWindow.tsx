@@ -67,12 +67,19 @@ export const ChatWindow: React.FC = () => {
     }
   }, [activeConversationId, clearRealtimeMessages]);
 
+  // 🟢 1. Ép string để đảm bảo truy vấn đúng Key trong Store Zustand
   const activeRealtime = activeConversationId
-    ? realtimeMessages[activeConversationId] || []
+    ? realtimeMessages[String(activeConversationId)] || []
     : [];
 
+  // 🟢 2. Sửa lại filter chống trùng tin nhắn bằng cả id lẫn _id
   const allMessages: IMessage[] = [...dbMessages, ...activeRealtime].filter(
-    (msg, index, self) => self.findIndex((m) => m.id === msg.id) === index,
+    (msg, index, self) => {
+      const msgId = msg.id || (msg as any)._id;
+      return (
+        self.findIndex((m) => (m.id || (m as any)._id) === msgId) === index
+      );
+    },
   );
 
   useEffect(() => {
@@ -112,17 +119,37 @@ export const ChatWindow: React.FC = () => {
     sendMessageMutation.mutate(msgText);
   };
 
+  // 1. Xử lý Hoàn thành hội thoại
   const handleResolve = () => {
     if (resolveMutation.isPending) return;
-    resolveMutation.mutate(activeConversationId);
+
+    resolveMutation.mutate(activeConversationId, {
+      onSuccess: () => {
+        setOpenConfirmResolve(false); // 🟢 Tự động đóng dialog khi thành công
+      },
+    });
   };
+
+  // 2. Xử lý Bật AI Bot
   const handleAIEnable = () => {
     if (enableAIMutation.isPending) return;
-    enableAIMutation.mutate(activeConversationId);
+
+    enableAIMutation.mutate(activeConversationId, {
+      onSuccess: () => {
+        setOpenConfirmEnableAI(false); // 🟢 Tự động đóng dialog khi thành công
+      },
+    });
   };
+
+  // 3. Xử lý Tiếp quản (Take Over)
   const handleTakeOver = () => {
     if (takeOverMutation.isPending) return;
-    takeOverMutation.mutate(activeConversationId);
+
+    takeOverMutation.mutate(activeConversationId, {
+      onSuccess: () => {
+        setOpenTakeOverConfirm(false); // 🟢 Tự động đóng dialog khi thành công
+      },
+    });
   };
 
   return (

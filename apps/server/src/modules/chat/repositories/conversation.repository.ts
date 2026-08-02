@@ -118,4 +118,17 @@ export class ConversationRepository {
 
     return updatedDoc ? updatedDoc.toJSON() : null;
   }
+
+  async update(
+    conversationId: string,
+    updateData: Record<string, any>,
+  ): Promise<any | null> {
+    const updatedDoc = await ConversationModel.findByIdAndUpdate(
+      conversationId,
+      updateData,
+      { new: true },
+    ).exec();
+
+    return updatedDoc ? updatedDoc.toJSON() : null;
+  }
 }

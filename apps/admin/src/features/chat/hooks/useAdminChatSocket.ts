@@ -73,8 +73,17 @@ export const useAdminChatSocket = () => {
         }
 
         // Cập nhật tin nhắn vào UI
-        addRealtimeMessage(message.conversationId, message);
+        // 🟢 1. Ép string để đảm bảo Key trong Zustand Store luôn chuẩn
+        const convIdStr = String(message.conversationId);
+
+        // 🟢 2. Luôn đẩy tin nhắn mới vào Zustand Realtime Store
+        addRealtimeMessage(convIdStr, message);
+
+        // 🟢 3. Làm tươi danh sách Sidebar
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+        // 🟢 4. BỔ SUNG LỆNH NÀY: Bắt buộc React Query tải lại/cập nhật danh sách Tin Nhắn!
+        queryClient.invalidateQueries({ queryKey: ["messages", convIdStr] });
 
         // 🟢 2. XỬ LÝ THÔNG BÁO CHO CUSTOMER
         if (message.sender === "CUSTOMER") {

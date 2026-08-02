@@ -1,6 +1,6 @@
 import {
   getGoogleAI,
-  qdrantClient,
+  getQdrantClient,
   validateAiConfig,
   VECTOR_COLLECTION_NAME,
 } from "@/shared/config/ai.config";
@@ -78,7 +78,8 @@ export class RAGService {
       }
 
       // 2. Tìm kiếm trong Qdrant
-      const searchResult = await qdrantClient.search(VECTOR_COLLECTION_NAME, {
+      const qdrant = getQdrantClient();
+      const searchResult = await qdrant.search(VECTOR_COLLECTION_NAME, {
         vector: queryVector,
         limit: TOP_K_CHUNKS,
         filter: {

@@ -155,6 +155,9 @@ export class ChatController {
   takeOver = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { conversationId } = req.params;
+      console.log(
+        `Admin ${req.user?.id} is taking over conversation ${conversationId}`,
+      );
       const adminId = (req as any).user?.id || (req as any).user?._id;
       const io = req.app.get("io");
 

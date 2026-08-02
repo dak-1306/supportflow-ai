@@ -106,19 +106,21 @@ export class ChatService {
 
   async saveCustomerMessage(conversationId: string, messageText: string) {
     const conversation = await this.conversationRepo.findById(conversationId);
+
     if (!conversation) {
       throw new AppError("Conversation not found", 404);
     }
 
     const message = await this.messageRepo.create({
-      conversationId: conversation._id,
+      conversationId: conversation.id,
       sender: "CUSTOMER",
       message: messageText,
       type: "TEXT",
     });
 
-    conversation.updatedAt = new Date();
-    await conversation.save();
+    await this.conversationRepo.update(conversationId, {
+      updatedAt: new Date(),
+    });
 
     return message;
   }
@@ -234,14 +236,15 @@ export class ChatService {
     }
 
     const message = await this.messageRepo.create({
-      conversationId: conversation._id,
+      conversationId: conversation.id,
       sender: "ADMIN",
       message: messageText,
       type: "TEXT",
     });
 
-    conversation.updatedAt = new Date();
-    await conversation.save();
+    await this.conversationRepo.update(conversationId, {
+      updatedAt: new Date(),
+    });
 
     return message;
   }
@@ -271,15 +274,16 @@ export class ChatService {
     }
 
     const message = await this.messageRepo.create({
-      conversationId: conversation._id,
+      conversationId: conversation.id,
       sender: "AI",
       message: messageText,
       type: "TEXT",
       metadata,
     });
 
-    conversation.updatedAt = new Date();
-    await conversation.save();
+    await this.conversationRepo.update(conversationId, {
+      updatedAt: new Date(),
+    });
 
     return message;
   }
@@ -288,9 +292,10 @@ export class ChatService {
     const conversation = await this.conversationRepo.findById(conversationId);
     if (!conversation) return null;
 
-    conversation.status = "WAITING_ADMIN" as any;
-    conversation.updatedAt = new Date();
-    return conversation.save();
+    await this.conversationRepo.update(conversationId, {
+      status: "WAITING_ADMIN",
+      updatedAt: new Date(),
+    });
   }
 
   // 1. Admin Tiếp Quản (Take Over)
@@ -307,7 +312,7 @@ export class ChatService {
 
     // Tạo System Message ghi nhận việc tiếp quản
     const systemMsg = await this.messageRepo.create({
-      conversationId: conversation._id,
+      conversationId: conversation.id,
       sender: "ADMIN",
       message: "Tư vấn viên đã tham gia cuộc hội thoại.",
       type: "SYSTEM",
@@ -358,7 +363,7 @@ export class ChatService {
     );
 
     const systemMsg = await this.messageRepo.create({
-      conversationId: conversation._id,
+      conversationId: conversation.id,
       sender: "ADMIN",
       message: "Cuộc hội thoại đã được đóng.",
       type: "SYSTEM",

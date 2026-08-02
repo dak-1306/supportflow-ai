@@ -11,10 +11,19 @@ export const getGoogleAI = () => {
 };
 
 // QdrantClient có thể giữ nguyên vì nó nhận url động hoặc bạn có thể bọc tương tự nếu cần
-export const qdrantClient = new QdrantClient({
-  url: process.env.QDRANT_URL || "http://localhost:6333",
-  apiKey: process.env.QDRANT_API_KEY || undefined,
-});
+export const getQdrantClient = () => {
+  const url = process.env.QDRANT_URL;
+  const apiKey = process.env.QDRANT_API_KEY;
+
+  if (!url) {
+    throw new AppError("QDRANT_URL chưa được cấu hình trong .env", 500);
+  }
+
+  return new QdrantClient({
+    url: url,
+    apiKey: apiKey || undefined,
+  });
+};
 
 export const VECTOR_COLLECTION_NAME = "supportflow_knowledge_base";
 export const VECTOR_SIZE = 3072;

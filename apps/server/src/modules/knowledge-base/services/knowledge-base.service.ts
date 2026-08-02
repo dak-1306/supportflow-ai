@@ -8,7 +8,7 @@ import { IDocument } from "@supportflow/shared-types";
 import { DocumentExtractor } from "../utils/document-extractor";
 import {
   getGoogleAI,
-  qdrantClient,
+  getQdrantClient,
   validateAiConfig,
   VECTOR_COLLECTION_NAME,
   VECTOR_SIZE,
@@ -22,6 +22,7 @@ export class KnowledgeBaseService {
     if (this.isCollectionInitialized) return;
 
     try {
+      const qdrantClient = getQdrantClient();
       const collections = await qdrantClient.getCollections();
       const exists = collections.collections.some(
         (c) => c.name === VECTOR_COLLECTION_NAME,
@@ -95,7 +96,6 @@ export class KnowledgeBaseService {
     documentId: string,
     fileBuffer: Buffer,
   ): Promise<void> {
-    // 1. Kiểm tra tài liệu, nếu tài liệu đang được xử lý bởi luồng khác thì thoát ngay
     const document = await documentRepository.findDocumentById(documentId);
     if (
       !document ||
@@ -120,39 +120,50 @@ export class KnowledgeBaseService {
 
       const clientAI = getGoogleAI();
 
-      // Thực thi tạo dữ liệu nhúng Embedding song song
-      const embeddingPromises = rawChunks.map(async (content, index) => {
-        const embeddingResponse = await clientAI.models.embedContent({
-          model: "gemini-embedding-2",
-          contents: content,
-        });
+      // 🟢 1. XỬ LÝ RATE LIMIT: Chia nhỏ thành từng Batch (5 chunks/lần)
+      const BATCH_SIZE = 5;
+      const processedChunks: Array<{
+        vectorId: string;
+        content: string;
+        vector: number[];
+        index: number;
+      }> = [];
 
-        // Hợp lệ hóa kiểu dữ liệu theo genai.d.ts bằng cách truy cập mảng an toàn
-        const vector = embeddingResponse.embeddings?.[0]?.values;
+      for (let i = 0; i < rawChunks.length; i += BATCH_SIZE) {
+        const chunkBatch = rawChunks.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(
+          chunkBatch.map(async (content, batchIndex) => {
+            const index = i + batchIndex;
+            const embeddingResponse = await clientAI.models.embedContent({
+              model: "gemini-embedding-2", // 👈 Giữ nguyên Model của bạn
+              contents: content,
+            });
 
-        if (!vector) {
-          throw new AppError(
-            `Không thể tạo sinh embedding cho đoạn văn bản số ${index}`,
-            500,
-          );
-        }
+            const vector = embeddingResponse.embeddings?.[0]?.values;
 
-        const vectorId = uuidv4();
-        // Đảm bảo trả về ĐÚNG biến 'content' của chunk hiện tại trong vòng lặp map
-        return { vectorId, content, vector, index };
-      });
+            if (!vector) {
+              throw new AppError(
+                `Không thể tạo sinh embedding cho đoạn văn bản số ${index}`,
+                500,
+              );
+            }
 
-      const processedChunks = await Promise.all(embeddingPromises);
+            return { vectorId: uuidv4(), content, vector, index };
+          }),
+        );
+        processedChunks.push(...batchResults);
+      }
 
       const mongoChunks: CreateChunkInput[] = [];
       const qdrantPoints: any[] = [];
 
       for (const chunk of processedChunks) {
+        // 🟢 2. SỬA LỖI CASTING: Dùng new Types.ObjectId chuẩn Mongoose
         mongoChunks.push({
-          documentId: document.id as unknown as Types.ObjectId,
-          workspaceId: document.workspaceId as unknown as Types.ObjectId,
+          documentId: new Types.ObjectId(document.id),
+          workspaceId: new Types.ObjectId(document.workspaceId),
           chunkIndex: chunk.index,
-          content: chunk.content, // Đảm bảo ghi nhận text riêng biệt
+          content: chunk.content,
           vectorId: chunk.vectorId,
           page: 1,
         });
@@ -168,8 +179,10 @@ export class KnowledgeBaseService {
         });
       }
 
-      // Xóa bỏ tất cả các chunk cũ của documentId này nếu có (Tránh trùng lặp do cơ chế chạy lại)
+      // Xóa bỏ tất cả các chunk cũ của documentId này nếu có
       await documentRepository.deleteChunksByDocumentId(documentId);
+
+      const qdrantClient = getQdrantClient();
 
       // Lưu đồng thời vào cả 2 database
       await Promise.all([
@@ -215,6 +228,7 @@ export class KnowledgeBaseService {
     }
 
     await this.initQdrantCollection();
+    const qdrantClient = getQdrantClient();
 
     await Promise.all([
       qdrantClient.delete(VECTOR_COLLECTION_NAME, {

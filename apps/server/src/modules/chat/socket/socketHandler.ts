@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 
 export const initSocketHandler = (io: Server) => {
+  // Middleware Authentication
   io.use((socket: Socket, next) => {
     const token = socket.handshake.auth?.token;
 
@@ -26,26 +27,49 @@ export const initSocketHandler = (io: Server) => {
   });
 
   io.on("connection", (socket: Socket) => {
-    // Admin Join vào Room của Workspace để nhận tin Handoff toàn Workspace
-    socket.on("join_workspace", (data: { workspaceId: string }) => {
-      if (data?.workspaceId) {
-        socket.join(`workspace_${data.workspaceId}`);
+    // 🟢 Join Workspace Room (Cho Admin)
+    socket.on("join_workspace", (data: { workspaceId: string } | string) => {
+      const workspaceId = typeof data === "string" ? data : data?.workspaceId;
+      if (workspaceId) {
+        const roomName = `workspace_${workspaceId}`;
+        socket.join(roomName);
+        console.log(`[Socket] Client ${socket.id} joined ${roomName}`);
       }
     });
 
-    socket.on("join_room", (data: { conversationId: string }) => {
-      if (data?.conversationId) {
-        socket.join(`room_${data.conversationId}`);
+    // 🟢 Join Conversation Room (Cho cả Widget & Admin)
+
+    socket.on("join_room", (data: { conversationId: string } | string) => {
+      // Chuẩn hóa conversationId từ cả Object lẫn String
+      const conversationId =
+        typeof data === "string" ? data : data?.conversationId;
+
+      if (conversationId) {
+        const roomName = `room_${conversationId}`;
+        socket.join(roomName);
+        console.log(
+          `[Socket] Client ${socket.id} (${(socket as any).user ? "ADMIN" : "WIDGET"}) JOINED ${roomName}`,
+        );
+      } else {
+        console.warn(
+          `[Socket] Client ${socket.id} gửi join_room thiếu conversationId:`,
+          data,
+        );
       }
     });
 
-    socket.on("leave_room", (data: { conversationId: string }) => {
-      if (data?.conversationId) {
-        socket.leave(`room_${data.conversationId}`);
+    // 🟢 Leave Conversation Room
+    socket.on("leave_room", (data: { conversationId: string } | string) => {
+      const conversationId =
+        typeof data === "string" ? data : data?.conversationId;
+      if (conversationId) {
+        const roomName = `room_${conversationId}`;
+        socket.leave(roomName);
+        console.log(`[Socket] Client ${socket.id} left ${roomName}`);
       }
     });
 
-    // Lắng nghe sự kiện báo hiệu trạng thái gõ phím từ client
+    // 🟢 Typing Status Indicator
     socket.on(
       "typing_status",
       (data: {
@@ -54,11 +78,10 @@ export const initSocketHandler = (io: Server) => {
         sender?: string;
       }) => {
         if (data?.conversationId) {
-          // Broadcast lại đúng sender mà Client gửi lên (ADMIN hoặc CUSTOMER)
           socket.to(`room_${data.conversationId}`).emit("typing_status", {
             conversationId: data.conversationId,
             isTyping: data.isTyping,
-            sender: data.sender || "CUSTOMER", // Mặc định CUSTOMER nếu không truyền
+            sender: data.sender || "CUSTOMER",
           });
         }
       },

@@ -40,7 +40,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
         ) : (
           <div className="space-y-4 pb-2">
-            {/* 1. Nút Tải tin nhắn cũ khi có Pagination */}
+            {/* 1. Nút Tải tin nhắn cũ */}
             {messages.length < totalInDb && messages.length > 0 && (
               <div className="flex justify-center my-1">
                 <Button
@@ -55,7 +55,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
               </div>
             )}
 
-            {/* 2. Hiển thị Welcome Message mặc định từ Config khi chưa có lịch sử chat */}
+            {/* 2. Hiển thị Welcome Message */}
             {messages.length === 0 && welcomeMessage && (
               <div className="flex gap-2.5 max-w-[85%] mr-auto animate-in fade-in duration-300">
                 <div className="flex h-6 w-6 shrink-0 select-none items-center justify-center rounded-md border border-border bg-card overflow-hidden">
@@ -119,7 +119,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
         )}
 
-        {/* 4. Indicator Trạng thái Đang gõ tin nhắn (Typing) */}
+        {/* 4. Indicator Trạng thái Đang gõ (Typing) */}
         {typingStatus.isTyping && (
           <div className="flex gap-2.5 max-w-[85%] mr-auto mt-4 pb-2">
             <div className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card overflow-hidden">

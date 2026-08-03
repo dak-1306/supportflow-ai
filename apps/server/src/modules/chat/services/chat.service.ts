@@ -70,7 +70,6 @@ export class ChatService {
       messageText,
     );
 
-    // 🟢 LẤY THÔNG TIN CONVERSATION ĐỂ LẤY WORKSPACE_ID
     const conversation = await this.conversationRepo.findById(conversationId);
 
     const messageJSON = savedMessage.toJSON
@@ -82,19 +81,19 @@ export class ChatService {
       conversationStatus: conversation?.status || "AI",
     };
 
-    // 2. Phát tín hiệu realtime cho Widget & Admin đang mở phòng này
+    // 🟢 2. Phát tin nhắn Realtime CHỈ CHO ROOM CỤ THỂ (Widget & Admin đang xem)
     io.to(`room_${conversationId}`).emit("new_message", formattedMessage);
 
-    // 🟢 2.5 BỔ SUNG QUAN TRỌNG: Phát tín hiệu cho TOÀN BỘ ADMIN trong Workspace
-    // (Giúp Admin kêu chuông & nhảy Badge thông báo kể cả khi chưa bấm vào xem hội thoại)
+    // 🟢 3. Tách riêng Event cho Workspace (Chỉ dùng để update Sidebar / Chuông báo)
+    // Dùng event tên: "workspace_new_message" để KHÔNG BỊ TRÙNG DỮ LIỆU VỚI "new_message"
     if (conversation?.workspaceId) {
       io.to(`workspace_${conversation.workspaceId.toString()}`).emit(
-        "new_message",
+        "workspace_new_message",
         formattedMessage,
       );
     }
 
-    // 3. Tiến trình RAG AI chạy ngầm (Background Job)
+    // 4. Tiến trình RAG AI chạy ngầm (Background Job)
     this.triggerAILogicBackground(conversationId, messageText.trim(), io).catch(
       (err) => {
         console.error("❌ Lỗi thực thi RAG AI chạy ngầm:", err);
@@ -220,13 +219,13 @@ export class ChatService {
     conversationId: string,
     messageText: string,
     adminId: string,
+    io?: any, // 🟢 Bổ sung io
   ) {
     const conversation = await this.conversationRepo.findById(conversationId);
     if (!conversation) {
       throw new AppError("Conversation not found", 404);
     }
 
-    // 🟢 BỔ SUNG: Nếu đang ở WAITING_ADMIN hoặc AI, tự động chuyển sang HUMAN và gán adminId
     if (
       conversation.status === ("WAITING_ADMIN" as ConversationStatus) ||
       conversation.status === ("AI" as ConversationStatus)
@@ -246,7 +245,26 @@ export class ChatService {
       updatedAt: new Date(),
     });
 
-    return message;
+    const messageJSON = message.toJSON ? message.toJSON() : message;
+    const formattedMessage = {
+      ...messageJSON,
+      id: messageJSON.id || messageJSON._id?.toString(),
+    };
+
+    // 🟢 PHÁT REALTIME CHO WIDGET VÀ CHAT WINDOW
+    if (io) {
+      io.to(`room_${conversationId}`).emit("new_message", formattedMessage);
+
+      // Đồng thời cập nhật cho Sidebar Admin
+      if (conversation.workspaceId) {
+        io.to(`workspace_${conversation.workspaceId.toString()}`).emit(
+          "workspace_new_message",
+          formattedMessage,
+        );
+      }
+    }
+
+    return formattedMessage;
   }
 
   async getAdminConversations(

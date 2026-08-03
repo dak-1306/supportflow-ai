@@ -4,7 +4,7 @@ import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 import { ConversationStatus } from "@supportflow/shared-types";
 
 export const chatKeys = {
-  allConversations: (status: ConversationStatus) =>
+  allConversations: (status?: ConversationStatus) =>
     ["conversations", status] as const,
   messages: (conversationId: string | null) =>
     ["messages", conversationId] as const,
@@ -20,7 +20,7 @@ export const useConversationsQuery = (
     queryKey: chatKeys.allConversations(status),
     queryFn: () => adminChatApi.getConversations(status, page, limit),
     refetchOnWindowFocus: true,
-    staleTime: 0, // 🟢 Đặt staleTime = 0 để luôn đảm bảo dữ liệu mới nhất khi bấm chuyển Tab
+    staleTime: 0,
   });
 };
 
@@ -31,7 +31,7 @@ export const useMessagesQuery = (
   limit = 50,
 ) => {
   return useQuery({
-    queryKey: [chatKeys.messages(conversationId), page, limit],
+    queryKey: chatKeys.messages(conversationId),
     queryFn: () => adminChatApi.getMessages(conversationId!, page, limit),
     enabled: !!conversationId,
     refetchOnWindowFocus: false,
@@ -43,7 +43,7 @@ export const useSendMessageMutation = (conversationId: string | null) => {
   const queryClient = useQueryClient();
   const setActiveConversationStatus = useAdminChatStore(
     (state) => state.setActiveConversationStatus,
-  ); // 🟢 Lấy hàm set status từ Store
+  );
 
   return useMutation({
     mutationFn: (msg: string) => {
@@ -51,25 +51,30 @@ export const useSendMessageMutation = (conversationId: string | null) => {
       return adminChatApi.sendMessage(conversationId, msg);
     },
     onSuccess: (newMessage) => {
-      // 🟢 1. Ép Zustand Store chuyển Tab Sidebar sang "HUMAN" lập tức!
       setActiveConversationStatus("HUMAN");
 
-      // 2. Cập nhật cache khung chat (Bổ sung status: "HUMAN" vào cache)
+      // Cập nhật Cache tin nhắn chuẩn
       queryClient.setQueryData(
         chatKeys.messages(conversationId),
         (oldData: any) => {
           if (!oldData)
             return { messages: [newMessage], total: 1, status: "HUMAN" };
+
+          // Kiểm tra tránh trùng lặp id
+          const exists = (oldData.messages || []).some(
+            (m: any) => m.id === newMessage.id,
+          );
+          if (exists) return oldData;
+
           return {
             ...oldData,
-            status: "HUMAN", // 🟢 Cập nhật status trong cache tin nhắn
+            status: "HUMAN",
             messages: [...(oldData.messages || []), newMessage],
             total: (oldData.total || 0) + 1,
           };
         },
       );
 
-      // 3. Invalidate để refetch danh sách cuộc hội thoại các tab
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
@@ -86,9 +91,7 @@ export const useTakeOverMutation = () => {
     mutationFn: (conversationId: string) =>
       adminChatApi.takeOverConversation(conversationId),
     onSuccess: (_, conversationId) => {
-      // 🟢 Chuyển tab Sidebar sang HUMAN
       setActiveConversationStatus("HUMAN");
-
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({
         queryKey: chatKeys.messages(conversationId),
@@ -111,10 +114,8 @@ export const useResolveMutation = () => {
     mutationFn: (conversationId: string) =>
       adminChatApi.resolveConversation(conversationId),
     onSuccess: (_, conversationId) => {
-      // 🟢 Hoàn thành xong thì đóng chat / chuyển về tab AI
       setActiveConversationStatus("AI");
       setActiveConversationId(null);
-
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({
         queryKey: chatKeys.messages(conversationId),
@@ -123,6 +124,7 @@ export const useResolveMutation = () => {
   });
 };
 
+// Hook Bật AI Bot
 export const useEnableAIMutation = () => {
   const queryClient = useQueryClient();
   const setActiveConversationStatus = useAdminChatStore(
@@ -133,12 +135,11 @@ export const useEnableAIMutation = () => {
     mutationFn: (conversationId: string) =>
       adminChatApi.enableAI(conversationId),
     onSuccess: (_, conversationId) => {
-      // 1. Tự động chuyển Tab Sidebar sang "AI"
       setActiveConversationStatus("AI");
-
-      // 2. Làm mới cache danh sách hội thoại và tin nhắn
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.messages(conversationId),
+      });
     },
   });
 };

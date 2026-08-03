@@ -1,89 +1,103 @@
 import { useEffect, useRef } from "react";
-import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useChatStore } from "@/store/chatStore";
 import { widgetKeys } from "@/hooks/useChatQueries";
-import { MessagesResponse } from "@/services/chat.api";
 import { IMessage } from "@supportflow/shared-types";
-import { notificationSound } from "@supportflow/assets"; // Import âm thanh từ package assets
+import { notificationSound } from "@supportflow/assets";
+import { widgetSocket } from "@/utils/widgetSocket";
 
-export const useChatSocket = (page = 1, limit = 50) => {
-  const socketRef = useRef<Socket | null>(null);
+export const useChatSocket = () => {
   const queryClient = useQueryClient();
   const { conversationId, setTypingStatus } = useChatStore();
+  const processedMessageIds = useRef(new Set<string>());
 
-  // EFFECT 1: Quản lý vòng đời kết nối Socket (Chỉ chạy lại khi conversationId thay đổi)
+  // 🟢 1. XỬ LÝ JOIN / LEAVE ROOM KHI CONVERSATION_ID THAY ĐỔI
   useEffect(() => {
-    if (!conversationId) return;
-
-    // Ép transports là websocket để triệt tiêu loop polling lỗi
-    const socket = io(
-      import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
-      {
-        transports: ["websocket"],
-        autoConnect: true,
-      },
-    );
-
-    socketRef.current = socket;
+    if (!widgetSocket) return;
 
     const handleConnect = () => {
+      console.log("🟢 Widget Socket connected! ID:", widgetSocket.id);
+      if (conversationId) {
+        console.log("🔗 Widget EMIT JOIN ROOM (ON CONNECT):", conversationId);
+        widgetSocket.emit("join_room", { conversationId });
+      }
+    };
+
+    // Nếu socket đã connected sẵn thì emit luôn
+    if (widgetSocket.connected && conversationId) {
       console.log(
-        "🔗 Widget Socket connected! Joining room...",
+        "🔗 Widget EMIT JOIN ROOM (ALREADY CONNECTED):",
         conversationId,
       );
-      socket.emit("join_room", { conversationId });
-    };
+      widgetSocket.emit("join_room", { conversationId });
+    }
 
-    if (socket.connected) handleConnect();
-    socket.on("connect", handleConnect);
-
-    // Lắng nghe thực thể typing
-    socket.on(
-      "typing_status",
-      (data: { isTyping: boolean; sender?: "ADMIN" | "AI" }) => {
-        setTypingStatus(data.isTyping, data.sender);
-      },
-    );
+    widgetSocket.on("connect", handleConnect);
 
     return () => {
-      socket.emit("leave_room", { conversationId });
-      socket.disconnect();
-      socketRef.current = null;
+      widgetSocket.off("connect", handleConnect);
+      if (conversationId && widgetSocket.connected) {
+        widgetSocket.emit("leave_room", { conversationId });
+      }
     };
-  }, [conversationId, setTypingStatus]);
+  }, [conversationId]);
 
-  // EFFECT 2: Đồng bộ nhận tin nhắn mới dựa trên biến page/limit cập nhật của React Query cache
+  // 🟢 2. QUẢN LÝ EVENT LISTENERS DÙNG SINGLETON SOCKET
   useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket || !conversationId) return;
+    if (!widgetSocket) return;
+
+    const handleConnect = () => {
+      console.log("🟢 Widget Socket connected! ID:", widgetSocket.id);
+      if (conversationId) {
+        widgetSocket.emit("join_room", { conversationId });
+      }
+    };
+
+    const handleTyping = (data: {
+      isTyping: boolean;
+      sender?: "ADMIN" | "AI";
+    }) => {
+      setTypingStatus(data.isTyping, data.sender);
+    };
 
     const handleNewMessage = (message: IMessage) => {
-      // 1. Cập nhật Cache React Query
+      console.log("📩 🔥 [WIDGET RECEIVED MESSAGE!]:", message);
+
+      if (!conversationId) return;
+
+      const convIdStr = String(conversationId);
+      const msgId = message.id;
+
+      // Chống trùng lặp tin nhắn
+      if (msgId) {
+        if (processedMessageIds.current.has(msgId)) return;
+        processedMessageIds.current.add(msgId);
+        setTimeout(() => processedMessageIds.current.delete(msgId), 5000);
+      }
+
+      // CẬP NHẬT TRỰC TIẾP VÀO REACT QUERY CACHE
       queryClient.setQueryData(
-        [widgetKeys.messages(conversationId), page, limit],
-        (oldData: MessagesResponse | undefined) => {
+        widgetKeys.messages(convIdStr),
+        (oldData: any) => {
           if (!oldData) return { messages: [message], total: 1 };
-          if (oldData.messages.some((m) => m.id === message.id)) return oldData;
+
+          const existingMessages = oldData.messages || [];
+          if (existingMessages.some((m: IMessage) => m.id === msgId)) {
+            return oldData;
+          }
 
           return {
             ...oldData,
-            messages: [...oldData.messages, message],
-            total: oldData.total + 1,
+            messages: [...existingMessages, message],
+            total: (oldData.total || 0) + 1,
           };
         },
       );
 
-      // 🟢 2. XỬ LÝ THÔNG BÁO CHO WIDGET:
-      // Lấy trạng thái isOpen hiện tại trực tiếp từ Zustand store
+      // Xử lý thông báo & phát tiếng khi Widget đóng
       const isWidgetOpen = useChatStore.getState().isOpen;
-
-      // Nếu tin nhắn do ADMIN hoặc AI gửi tới VÀ Widget đang ĐÓNG
       if (message.sender !== "CUSTOMER" && !isWidgetOpen) {
-        // Tăng số tin nhắn chưa đọc
         useChatStore.getState().incrementUnreadCount();
-
-        // Phát âm thanh báo tin nhắn mới
         try {
           const audio = new Audio(notificationSound);
           audio.play().catch(() => {});
@@ -91,16 +105,23 @@ export const useChatSocket = (page = 1, limit = 50) => {
       }
     };
 
-    socket.on("new_message", handleNewMessage);
+    // Đăng ký Listener
+    if (widgetSocket.connected) handleConnect();
+    widgetSocket.on("connect", handleConnect);
+    widgetSocket.on("typing_status", handleTyping);
+    widgetSocket.on("new_message", handleNewMessage);
 
+    // CLEANUP
     return () => {
-      socket.off("new_message", handleNewMessage);
+      widgetSocket.off("connect", handleConnect);
+      widgetSocket.off("typing_status", handleTyping);
+      widgetSocket.off("new_message", handleNewMessage);
     };
-  }, [conversationId, page, limit, queryClient]);
+  }, [conversationId, queryClient, setTypingStatus]);
 
   const emitTypingStatus = (isTyping: boolean) => {
-    if (socketRef.current?.connected && conversationId) {
-      socketRef.current.emit("typing_status", {
+    if (widgetSocket.connected && conversationId) {
+      widgetSocket.emit("typing_status", {
         conversationId,
         isTyping,
         sender: "CUSTOMER",

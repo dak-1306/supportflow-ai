@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { chatApi, MessagesResponse } from "@/services/chat.api";
-import { IMessage } from "@supportflow/shared-types"; // Import dùng chung
+import { IMessage } from "@supportflow/shared-types";
 
 export const widgetKeys = {
   messages: (conversationId: string | null) =>
@@ -14,7 +14,7 @@ export const useWidgetMessagesQuery = (
   limit = 50,
 ) => {
   return useQuery({
-    queryKey: [widgetKeys.messages(conversationId), page, limit],
+    queryKey: widgetKeys.messages(conversationId),
     queryFn: () => chatApi.getMessages(conversationId!, page, limit),
     enabled: !!conversationId,
     refetchOnWindowFocus: false,
@@ -23,11 +23,7 @@ export const useWidgetMessagesQuery = (
 };
 
 // Hook gửi tin nhắn
-export const useWidgetSendMessageMutation = (
-  conversationId: string | null,
-  page = 1, // Thêm tham số page (mặc định là 1)
-  limit = 50, // Thêm tham số limit (mặc định là 50)
-) => {
+export const useWidgetSendMessageMutation = (conversationId: string | null) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -36,12 +32,13 @@ export const useWidgetSendMessageMutation = (
       return chatApi.sendMessage(conversationId, message);
     },
     onSuccess: (newMessage: IMessage) => {
-      // Truyền đúng cấu trúc mảng Key bao gồm page và limit
+      // Cập nhật đúng Cache Key thống nhất
       queryClient.setQueryData(
-        [widgetKeys.messages(conversationId), page, limit],
+        widgetKeys.messages(conversationId),
         (oldData: MessagesResponse | undefined) => {
           if (!oldData) return { messages: [newMessage], total: 1 };
 
+          // Kiểm tra chống trùng theo ID chuẩn
           const exists = oldData.messages.some((m) => m.id === newMessage.id);
           if (exists) return oldData;
 

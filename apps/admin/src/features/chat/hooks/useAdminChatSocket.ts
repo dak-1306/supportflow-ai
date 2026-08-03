@@ -1,28 +1,22 @@
-// hooks/useAdminChatSocket.ts
 import { useEffect, useRef, useCallback } from "react";
-import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAdminChatStore } from "@/features/chat/stores/chat.store";
-import { useAuthStore } from "@/stores/auth.store"; // Import auth store lấy workspaceId
-import { chatKeys } from "@/features/chat/hooks/useChatQueries";
+import { useAuthStore } from "@/stores/auth.store";
 import { IMessage, ConversationStatus } from "@supportflow/shared-types";
-
 import { notificationSound } from "@supportflow/assets";
+import { adminSocket } from "@/features/chat/libs/adminSocket";
 
 export const useAdminChatSocket = () => {
-  const socketRef = useRef<Socket | null>(null);
   const queryClient = useQueryClient();
   const workspaceId = useAuthStore((state) => state.user?.workspaceId);
-
-  const processedMessageIds = new Set<string>();
+  const processedMessageIds = useRef(new Set<string>());
 
   const {
     activeConversationId,
     setActiveConversationStatus,
-    addRealtimeMessage,
     setCustomerTyping,
     setAITyping,
-    addNotification, // Action từ Zustand
+    addNotification,
   } = useAdminChatStore();
 
   const activeIdRef = useRef(activeConversationId);
@@ -30,7 +24,6 @@ export const useAdminChatSocket = () => {
     activeIdRef.current = activeConversationId;
   }, [activeConversationId]);
 
-  // Hàm phát tiếng chuông
   const playSound = useCallback(() => {
     try {
       const audio = new Audio(notificationSound);
@@ -38,171 +31,189 @@ export const useAdminChatSocket = () => {
     } catch (e) {}
   }, []);
 
+  // 🟢 1. JOIN/LEAVE ROOM SẠCH SẼ
   useEffect(() => {
-    const socket = io(
-      import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
-      {
-        transports: ["websocket"],
-        autoConnect: true,
-      },
-    );
-    socketRef.current = socket;
+    if (!adminSocket) return;
 
-    socket.on("connect", () => {
-      // 🟢 1. Join Room Workspace để nhận thông báo khẩn từ AI
-      if (workspaceId) {
-        socket.emit("join_workspace", { workspaceId });
-      }
+    if (workspaceId) {
+      adminSocket.emit("join_workspace", { workspaceId });
+    }
 
-      if (activeIdRef.current) {
-        socket.emit("join_room", { conversationId: activeIdRef.current });
-      }
-    });
-
-    socket.on(
-      "new_message",
-      (message: IMessage & { conversationStatus?: ConversationStatus }) => {
-        // 🟢 1. CHỐNG LẶP TIN NHẮN (Deduplication)
-        const msgId = message.id || (message as any)._id;
-        if (msgId) {
-          if (processedMessageIds.has(msgId)) return; // Nếu đã xử lý rồi -> Bỏ qua
-          processedMessageIds.add(msgId);
-
-          // Dọn dẹp cache memory sau 5 giây để tránh phình dung lượng
-          setTimeout(() => processedMessageIds.delete(msgId), 5000);
-        }
-
-        // Cập nhật tin nhắn vào UI
-        // 🟢 1. Ép string để đảm bảo Key trong Zustand Store luôn chuẩn
-        const convIdStr = String(message.conversationId);
-
-        // 🟢 2. Luôn đẩy tin nhắn mới vào Zustand Realtime Store
-        addRealtimeMessage(convIdStr, message);
-
-        // 🟢 3. Làm tươi danh sách Sidebar
-        queryClient.invalidateQueries({ queryKey: ["conversations"] });
-
-        // 🟢 4. BỔ SUNG LỆNH NÀY: Bắt buộc React Query tải lại/cập nhật danh sách Tin Nhắn!
-        queryClient.invalidateQueries({ queryKey: ["messages", convIdStr] });
-
-        // 🟢 2. XỬ LÝ THÔNG BÁO CHO CUSTOMER
-        if (message.sender === "CUSTOMER") {
-          // Bỏ qua nếu status là AI
-          if (message.conversationStatus === "AI") return;
-
-          // Luôn phát chuông
-          playSound();
-
-          // Kiểm tra xem Admin có đang mở ĐÚNG đoạn chat này hay không
-          const currentActiveId = activeIdRef.current
-            ? String(activeIdRef.current)
-            : null;
-          const incomingConversationId = String(message.conversationId);
-
-          // Nếu Admin KHÔNG ĐANG MỞ đúng đoạn chat này (hoặc đang ở trang khác)
-          if (incomingConversationId !== currentActiveId) {
-            addNotification({
-              conversationId: incomingConversationId,
-              type:
-                message.conversationStatus === "WAITING_ADMIN"
-                  ? "WAITING_HANDOFF"
-                  : "CUSTOMER_MESSAGE",
-              title:
-                message.conversationStatus === "WAITING_ADMIN"
-                  ? "Cần hỗ trợ gấp!"
-                  : "Tin nhắn mới",
-              message:
-                message.message ||
-                (message as any).content ||
-                "Khách hàng đã gửi một tin nhắn.",
-              createdAt: new Date().toISOString(),
-            });
-          }
-        }
-      },
-    );
-
-    // 🟢 2. Xử lý THÔNG BÁO ADMIN & Phát tiếng
-    socket.on(
-      "admin_notification",
-      (data: {
-        conversationId: string;
-        type: string;
-        title?: string;
-        message?: string;
-      }) => {
-        if (data.type?.toUpperCase() === "WAITING_HANDOFF") {
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-
-          // Lưu vào Zustand Store & Phát âm thanh
-          addNotification({
-            conversationId: data.conversationId,
-            type: data.type,
-            title: data.title || "Cần hỗ trợ!",
-            message: data.message || "Khách hàng cần tư vấn viên tiếp quản.",
-            createdAt: new Date().toISOString(),
-          });
-          playSound();
-        }
-      },
-    );
-
-    socket.on(
-      "conversation_status_changed",
-      (data: { conversationId: string; status: ConversationStatus }) => {
-        queryClient.invalidateQueries({ queryKey: ["conversations"] });
-        queryClient.invalidateQueries({
-          queryKey: chatKeys.messages(data.conversationId),
-        });
-
-        if (data.conversationId === activeIdRef.current) {
-          setActiveConversationStatus(data.status);
-        }
-      },
-    );
+    if (activeConversationId) {
+      console.log("🚀 Admin EMIT JOIN ROOM:", activeConversationId);
+      adminSocket.emit("join_room", { conversationId: activeConversationId });
+    }
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      if (activeConversationId) {
+        console.log("🚪 Admin LEAVE ROOM:", activeConversationId);
+        adminSocket.emit("leave_room", {
+          conversationId: activeConversationId,
+        });
+      }
+    };
+  }, [activeConversationId, workspaceId]);
+
+  // 🟢 2. KHỞI TẠO TẤT CẢ LISTENERS
+  useEffect(() => {
+    const handleConnect = () => {
+      console.log("🟢 Socket Admin Connected! ID:", adminSocket.id);
+      if (workspaceId) adminSocket.emit("join_workspace", { workspaceId });
+      if (activeIdRef.current) {
+        adminSocket.emit("join_room", { conversationId: activeIdRef.current });
+      }
+    };
+
+    // 📩 Tin nhắn mới trong Room đang mở
+    const handleNewMessage = (
+      rawMessage: IMessage & { conversationStatus?: ConversationStatus },
+    ) => {
+      console.log("📩 🔥 [SOCKET RECEIVED ROOM MESSAGE]:", rawMessage);
+      const msgId = rawMessage.id || (rawMessage as any)._id;
+
+      if (msgId) {
+        if (processedMessageIds.current.has(msgId)) return;
+        processedMessageIds.current.add(msgId);
+        setTimeout(() => processedMessageIds.current.delete(msgId), 5000);
+      }
+
+      const convIdStr = String(rawMessage.conversationId);
+
+      queryClient.setQueriesData(
+        { queryKey: ["messages", convIdStr] },
+        (oldData: any) => {
+          if (!oldData) return { messages: [rawMessage], total: 1 };
+          const existing = oldData.messages || [];
+
+          if (existing.some((m: any) => (m.id || m._id) === msgId)) {
+            return oldData;
+          }
+
+          return {
+            ...oldData,
+            messages: [...existing, rawMessage],
+            total: (oldData.total || 0) + 1,
+          };
+        },
+      );
+
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+      if (
+        rawMessage.sender === "CUSTOMER" &&
+        rawMessage.conversationStatus !== "AI"
+      ) {
+        playSound();
+      }
+    };
+
+    // 📬 Tin nhắn từ Workspace Sidebar
+    const handleWorkspaceMessage = (
+      rawMessage: IMessage & { conversationStatus?: ConversationStatus },
+    ) => {
+      const convIdStr = String(rawMessage.conversationId);
+      const currentActiveId = activeIdRef.current
+        ? String(activeIdRef.current)
+        : null;
+
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+      if (
+        rawMessage.sender === "CUSTOMER" &&
+        rawMessage.conversationStatus !== "AI" &&
+        convIdStr !== currentActiveId
+      ) {
+        playSound();
+        addNotification({
+          conversationId: convIdStr,
+          type:
+            rawMessage.conversationStatus === "WAITING_ADMIN"
+              ? "WAITING_HANDOFF"
+              : "CUSTOMER_MESSAGE",
+          title:
+            rawMessage.conversationStatus === "WAITING_ADMIN"
+              ? "Cần hỗ trợ gấp!"
+              : "Tin nhắn mới",
+          message: rawMessage.message || "Khách hàng đã gửi một tin nhắn.",
+          createdAt: new Date().toISOString(),
+        });
+      }
+    };
+
+    // 🔔 Thông báo khẩn từ AI (RAG Handoff)
+    const handleAdminNotification = (data: {
+      conversationId: string;
+      type: string;
+      title: string;
+      message: string;
+      createdAt: string;
+    }) => {
+      playSound();
+      addNotification(data);
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    };
+
+    // 🔄 Thay đổi Trạng thái Cuộc hội thoại
+    const handleStatusChanged = (data: {
+      conversationId: string;
+      status: ConversationStatus;
+      assignedAdminId?: string;
+    }) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+      // Nếu là phòng đang mở -> Sync trạng thái Store
+      if (String(data.conversationId) === String(activeIdRef.current)) {
+        setActiveConversationStatus(data.status);
+      }
+    };
+
+    // ✍️ Kiểm tra Typing Indicator (Có lọc phòng)
+    const handleTyping = (data: {
+      conversationId: string;
+      isTyping: boolean;
+      sender?: string;
+    }) => {
+      // Chỉ cập nhật nếu event thuộc về phòng đang active
+      if (
+        data?.conversationId &&
+        String(data.conversationId) !== String(activeIdRef.current)
+      ) {
+        return;
+      }
+      if (data.sender === "AI") setAITyping(data.isTyping);
+      else if (data.sender === "CUSTOMER") setCustomerTyping(data.isTyping);
+    };
+
+    // Đăng ký Event
+    if (adminSocket.connected) handleConnect();
+    adminSocket.on("connect", handleConnect);
+    adminSocket.on("new_message", handleNewMessage);
+    adminSocket.on("workspace_new_message", handleWorkspaceMessage);
+    adminSocket.on("admin_notification", handleAdminNotification);
+    adminSocket.on("conversation_status_changed", handleStatusChanged);
+    adminSocket.on("typing_status", handleTyping);
+
+    return () => {
+      adminSocket.off("connect", handleConnect);
+      adminSocket.off("new_message", handleNewMessage);
+      adminSocket.off("workspace_new_message", handleWorkspaceMessage);
+      adminSocket.off("admin_notification", handleAdminNotification);
+      adminSocket.off("conversation_status_changed", handleStatusChanged);
+      adminSocket.off("typing_status", handleTyping);
     };
   }, [
-    workspaceId,
     queryClient,
-    addRealtimeMessage,
+    setAITyping,
+    setCustomerTyping,
     setActiveConversationStatus,
     addNotification,
     playSound,
+    workspaceId,
   ]);
 
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket || !activeConversationId) return;
-
-    if (socket.connected) {
-      socket.emit("join_room", { conversationId: activeConversationId });
-    }
-
-    socket.on(
-      "typing_status",
-      (data: { isTyping: boolean; sender?: string }) => {
-        if (data.sender === "AI") {
-          setAITyping(data.isTyping);
-        } else if (data.sender === "CUSTOMER") {
-          // 🟢 CHỈ bật Customer Typing khi nguồn gửi đúng là CUSTOMER
-          setCustomerTyping(data.isTyping);
-        }
-      },
-    );
-
-    return () => {
-      socket.emit("leave_room", { conversationId: activeConversationId });
-      socket.off("typing_status");
-    };
-  }, [activeConversationId, setCustomerTyping, setAITyping]);
-
   const emitAdminTyping = (isTyping: boolean) => {
-    if (socketRef.current?.connected && activeConversationId) {
-      socketRef.current.emit("typing_status", {
+    if (adminSocket.connected && activeConversationId) {
+      adminSocket.emit("typing_status", {
         conversationId: activeConversationId,
         isTyping,
         sender: "ADMIN",

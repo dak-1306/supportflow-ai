@@ -19,7 +19,7 @@ export const ChatWidget: React.FC = () => {
   const { data: workspaceData } = useWidgetConfig();
   const widgetConfig = workspaceData?.widgetConfig;
 
-  // 2. Tiêm đè biến --primary khi config có dữ liệu màu sắc
+  // 2. Tiêm biến màu sắc --primary
   useEffect(() => {
     const primaryColor = widgetConfig?.primaryColor;
     if (primaryColor) {
@@ -43,7 +43,7 @@ export const ChatWidget: React.FC = () => {
   const [page, setPage] = useState(1);
   const [initLoading, setInitLoading] = useState(false);
 
-  const { emitTypingStatus } = useChatSocket(page, 50);
+  const { emitTypingStatus } = useChatSocket();
   const {
     data,
     isLoading: queryLoading,
@@ -99,7 +99,8 @@ export const ChatWidget: React.FC = () => {
             showLoader={showLoader}
             isFetching={isFetching}
             onLoadMore={() => setPage((prev) => prev + 1)}
-            welcomeMessage={widgetConfig?.welcomeMessage} // Truyền welcomeMessage xuống nếu ChatMessages có hỗ trợ
+            welcomeMessage={widgetConfig?.welcomeMessage}
+            botAvatar={widgetConfig?.botAvatar}
           />
 
           <ChatInputForm

@@ -16,18 +16,24 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor xử lý tự động refresh token khi gặp lỗi 401
+// Interceptor xử lý lỗi chung (Lỗi 500+ và Lỗi 401 Refresh Token)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
+
+    // 1. Xử lý lỗi Máy Chủ (500, 502, 503, 504...)
+    // Chỉ chuyển hướng nếu hiện tại CHƯA ĐANG Ở trang /500
+    if (status && status >= 500 && window.location.pathname !== "/500") {
+      window.location.href = "/500";
+      return Promise.reject(error);
+    }
+
+    // 2. Xử lý tự động refresh token khi gặp lỗi 401
     const refreshToken = localStorage.getItem("refresh_token");
 
-    if (
-      error.response?.status === 401 &&
-      refreshToken &&
-      !originalRequest._retry
-    ) {
+    if (status === 401 && refreshToken && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const res = await axios.post(
@@ -51,6 +57,7 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   },
 );

@@ -13,6 +13,7 @@ import { ChatHeader } from "@/components/ChatHeader";
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatInputForm } from "@/components/ChatInputForm";
 import { useWidgetConfig } from "@/hooks/useWidgetConfig";
+import { WidgetConnectionBanner } from "@/components/WidgetConnectionBanner";
 
 export const ChatWidget: React.FC = () => {
   // 1. Fetch cấu hình widget từ DB
@@ -92,6 +93,8 @@ export const ChatWidget: React.FC = () => {
             botAvatar={widgetConfig?.botAvatar}
             logo={workspaceData?.logo}
           />
+
+          <WidgetConnectionBanner />
 
           <ChatMessages
             messages={dbMessages}

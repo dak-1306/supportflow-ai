@@ -13,6 +13,8 @@ import { WorkspaceSettingsPage } from "@/features/workspace/pages/WorkspaceSetti
 import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 import Register from "@/features/auth/pages/Register";
 import OnboardingPage from "@/features/workspace/pages/OnboardingPage";
+import NotFoundPage from "@/features/errors/pages/NotFoundPage";
+import ServerErrorPage from "@/features/errors/pages/ServerErrorPage";
 
 // Nâng cấp ProtectedRoute hỗ trợ kiểm tra Role
 interface ProtectedRouteProps {
@@ -123,8 +125,9 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Điều hướng mặc định */}
-      <Route path="*" element={<Navigate to="/chat" replace />} />
+      {/* Error Pages */}
+      <Route path="/500" element={<ServerErrorPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

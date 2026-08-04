@@ -27,8 +27,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5500",
-  "https://supportflow-ai-admin.vercel.app/",
-  "https://supportflow-ai-widget-seven.vercel.app/",
+  "https://supportflow-ai-admin.vercel.app",
+  "https://supportflow-ai-widget-seven.vercel.app",
 ];
 app.use(
   cors({
@@ -71,13 +71,20 @@ app.use("/api/v1/rag", ragRouter);
 app.use("/api/v1", dashboardRouter);
 app.use("/api/v1/users", userRouter);
 
-app.get("/health", (req, res) => {
+// Hàm xử lý health check dùng chung
+const healthCheckHandler = (req: express.Request, res: express.Response) => {
   res.status(200).json({
     status: "OK",
-    uptime: process.uptime(), // Thời gian server đã chạy (giây)
+    uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });
-});
+};
+
+// 1. Phục vụ cho UptimeRobot / Render Monitor ở Root
+app.get("/health", healthCheckHandler);
+
+// 2. Phục vụ cho Frontend / Health Check Service ở API v1
+app.get("/api/v1/health", healthCheckHandler);
 
 // Global Error Handler (Luôn đặt dưới cùng của các Route)
 app.use(errorHandler);

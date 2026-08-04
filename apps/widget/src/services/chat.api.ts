@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/api";
+import { getWorkspaceId } from "@/utils/config";
 import { IMessage } from "@supportflow/shared-types";
 export interface MessagesResponse {
   messages: IMessage[];
@@ -7,9 +8,11 @@ export interface MessagesResponse {
 
 export const chatApi = {
   initConversation: async (customerId: string | null) => {
+    const workspaceId = getWorkspaceId();
+    
     const response = await apiClient.post("/customer/conversations/init", {
       customerId,
-      workspaceId: import.meta.env.VITE_WORKSPACE_ID,
+      workspaceId,
     });
     return response.data.data; // Trả về { conversation, isNew, customerId }
   },

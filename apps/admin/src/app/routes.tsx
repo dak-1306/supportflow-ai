@@ -22,6 +22,26 @@ interface ProtectedRouteProps {
   allowedRoles?: ("owner" | "admin" | "agent")[];
 }
 
+function RootRedirect() {
+  const { isAuthenticated, user } = useAuthStore((state) => ({
+    isAuthenticated: state.isAuthenticated,
+    user: state.user,
+  }));
+
+  // 1. Chưa đăng nhập -> Chuyển hướng sang Login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // 2. Nếu là Agent -> Chuyển thẳng tới trang Chat (nơi làm việc chính)
+  if (user?.role === "agent") {
+    return <Navigate to="/chat" replace />;
+  }
+
+  // 3. Nếu là Owner / Admin -> Chuyển tới Dashboard
+  return <Navigate to="/dashboard" replace />;
+}
+
 function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAuthStore((state) => ({
     isAuthenticated: state.isAuthenticated,
@@ -44,6 +64,8 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
 export default function AppRoutes() {
   return (
     <Routes>
+      {/* Route gốc điều hướng thông minh */}
+      <Route path="/" element={<RootRedirect />} />
       {/* Route công khai */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />

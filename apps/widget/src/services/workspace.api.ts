@@ -1,8 +1,9 @@
 import { apiClient } from "@/services/api";
 import { getWorkspaceId } from "@/utils/config";
+import { IWorkspace } from "@supportflow/shared-types";
 
 export const workspaceApi = {
-  getWidgetConfig: async () => {
+  getWidgetConfig: async (): Promise<IWorkspace> => {
     const workspaceId = getWorkspaceId();
 
     if (!workspaceId) {

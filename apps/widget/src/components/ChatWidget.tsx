@@ -79,6 +79,8 @@ export const ChatWidget: React.FC = () => {
     sendMessageMutation.mutate(text);
   };
 
+  console.log("workspace data", workspaceData);
+
   return (
     <div
       id="supportflow-widget-container"

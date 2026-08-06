@@ -16,6 +16,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { initSocketHandler } from "@/modules/chat/socket/socketHandler";
 import { workspaceRoutes } from "@/modules/workspace/routes/workspace.routes";
+import { uploadRoutes } from "./modules/upload/upload.routes";
 
 dotenv.config();
 
@@ -70,6 +71,7 @@ app.use("/api/v1/workspaces/:workspaceId/documents", knowledgeBaseRouter);
 app.use("/api/v1/rag", ragRouter);
 app.use("/api/v1", dashboardRouter);
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/uploads", uploadRoutes);
 
 // Hàm xử lý health check dùng chung
 const healthCheckHandler = (req: express.Request, res: express.Response) => {

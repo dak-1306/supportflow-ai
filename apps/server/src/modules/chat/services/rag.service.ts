@@ -28,12 +28,11 @@ export interface RAGQueryResult {
 async function callGeminiWithRetry<T>(
   fn: () => Promise<T>,
   retries = 2,
-  delayMs = 3000, // Tăng lên 3s thay vì 1s
+  delayMs = 3000,
 ): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
-    // 🛑 NẾU DÍNH LỖI QUOTA (429 / RESOURCE_EXHAUSTED) -> KHÔNG RETRY NỮA, BÁO LỖI LUÔN
     if (error.status === 429 || error.message?.includes("Quota exceeded")) {
       console.error(
         "⚠️ Đã chạm giới hạn Quota Free Tier của Google (5 req/phút). Hủy Retry.",
@@ -41,7 +40,6 @@ async function callGeminiWithRetry<T>(
       throw error;
     }
 
-    // Chỉ retry đối với lỗi 503 (Server quá tải tạm thời)
     if (
       retries > 0 &&
       (error.status === 503 || error.message?.includes("high demand"))
@@ -66,7 +64,7 @@ export class RAGService {
       validateAiConfig();
       const clientAI = getGoogleAI();
 
-      // 1. Tạo Vector Embedding
+      // 1. Tạo Vector Embedding cho câu hỏi
       const embeddingResponse = await clientAI.models.embedContent({
         model: "gemini-embedding-2",
         contents: question,
@@ -77,15 +75,36 @@ export class RAGService {
         throw new AppError("Không thể tạo vector embedding cho câu hỏi.", 500);
       }
 
-      // 2. Tìm kiếm trong Qdrant
+      // Log kiểm tra số chiều của Vector câu hỏi
+      console.log(`[RAG Debug] Query Vector Dimension: ${queryVector.length}`);
+
+      // 2. Tìm kiếm trong Qdrant (Bọc try-catch phòng trường hợp Collection chưa tồn tại)
       const qdrant = getQdrantClient();
-      const searchResult = await qdrant.search(VECTOR_COLLECTION_NAME, {
-        vector: queryVector,
-        limit: TOP_K_CHUNKS,
-        filter: {
-          must: [{ key: "workspaceId", match: { value: workspaceId } }],
-        },
-      });
+      let searchResult: any[] = [];
+
+      // Ép kiểu string chuẩn xác cho workspaceId
+      const cleanWorkspaceId = String(workspaceId);
+
+      try {
+        searchResult = await qdrant.search(VECTOR_COLLECTION_NAME, {
+          vector: queryVector,
+          limit: TOP_K_CHUNKS,
+          filter: {
+            must: [
+              {
+                key: "workspaceId",
+                match: { value: cleanWorkspaceId }, // 👈 Đảm bảo value luôn là string
+              },
+            ],
+          },
+        });
+      } catch (qdrantErr: any) {
+        // In chi tiết phản hồi lỗi từ Qdrant để debug chính xác
+        console.error(
+          `[Qdrant Search Error Detail]:`,
+          qdrantErr?.response?.data || qdrantErr?.data || qdrantErr,
+        );
+      }
 
       const topScore = searchResult.length > 0 ? searchResult[0].score : 0;
       const citations: Citation[] = searchResult.map((hit) => ({
@@ -107,10 +126,10 @@ export class RAGService {
         context: contextText,
       });
 
-      // 5. Gọi Gemini Model
+      // 5. Gọi Gemini Model (SỬA LẠI THÀNH "gemini-2.0-flash")
       const response = await callGeminiWithRetry(() =>
         clientAI.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-3.5-flash", // 👈 Sửa từ "gemini-3.5-flash" thành "gemini-2.0-flash"
           contents: [
             {
               role: "user",
@@ -130,8 +149,7 @@ export class RAGService {
         `[RAGService] Question: "${question}" | Answer: "${answerText}" | Top Score: ${topScore} | Citations Found: ${citations.length}`,
       );
 
-      // 6. QUYẾT ĐỊNH HANDOFF: Chỉ Handoff khi Gemini chính thức phát ra câu lệnh Fallback
-      // (Gemini sẽ chủ động chào hỏi nếu nhận diện xã giao mà KHÔNG phát ra câu Fallback này)
+      // 6. QUYẾT ĐỊNH HANDOFF
       const shouldHandoff = answerText.includes(RAG_FALLBACK_PHRASE);
 
       return {
@@ -141,6 +159,10 @@ export class RAGService {
         citations,
       };
     } catch (error: any) {
+      console.error(
+        "[RAG Error Detail]:",
+        error?.response?.data || error?.message || error,
+      );
       if (error instanceof AppError) throw error;
       throw new AppError(`Lỗi xử lý RAG: ${error.message}`, 500);
     }

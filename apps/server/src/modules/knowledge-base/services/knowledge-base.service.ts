@@ -16,11 +16,7 @@ import {
 import { AppError } from "../../../shared/utils/app-error";
 
 export class KnowledgeBaseService {
-  private isCollectionInitialized = false;
-
   private async initQdrantCollection(): Promise<void> {
-    if (this.isCollectionInitialized) return;
-
     try {
       const qdrantClient = getQdrantClient();
       const collections = await qdrantClient.getCollections();
@@ -30,7 +26,7 @@ export class KnowledgeBaseService {
 
       if (!exists) {
         console.log(
-          `Creating Qdrant collection "${VECTOR_COLLECTION_NAME}" (${VECTOR_SIZE} dimensions)...`,
+          `Tạo mới Qdrant collection "${VECTOR_COLLECTION_NAME}" (${VECTOR_SIZE} dimensions)...`,
         );
 
         await qdrantClient.createCollection(VECTOR_COLLECTION_NAME, {
@@ -51,14 +47,24 @@ export class KnowledgeBaseService {
 
         if (currentSize !== VECTOR_SIZE) {
           throw new AppError(
-            `Qdrant collection "${VECTOR_COLLECTION_NAME}" có vector dimension ${currentSize}, nhưng project yêu cầu ${VECTOR_SIZE}. Hãy xóa collection và tạo lại.`,
+            `Qdrant collection "${VECTOR_COLLECTION_NAME}" có dimension ${currentSize}, nhưng yêu cầu ${VECTOR_SIZE}. Vui lòng xóa collection trên Qdrant và thử lại.`,
             500,
           );
         }
       }
 
-      this.isCollectionInitialized = true;
+      // 🟢 TẠO PAYLOAD INDEX CHO FIELD "workspaceId"
+      try {
+        await qdrantClient.createPayloadIndex(VECTOR_COLLECTION_NAME, {
+          field_name: "workspaceId",
+          field_schema: "keyword",
+          wait: true,
+        });
+      } catch (indexError) {
+        // Bỏ qua nếu index đã tồn tại từ trước
+      }
     } catch (error: any) {
+      if (error instanceof AppError) throw error;
       throw new AppError(`Không thể khởi tạo Qdrant: ${error.message}`, 500);
     }
   }
@@ -227,15 +233,24 @@ export class KnowledgeBaseService {
       );
     }
 
-    await this.initQdrantCollection();
-    const qdrantClient = getQdrantClient();
-
-    await Promise.all([
-      qdrantClient.delete(VECTOR_COLLECTION_NAME, {
+    // 1. Thử xóa Vector trên Qdrant (Bỏ qua lỗi nếu point/collection chưa có dữ liệu)
+    try {
+      await this.initQdrantCollection();
+      const qdrantClient = getQdrantClient();
+      await qdrantClient.delete(VECTOR_COLLECTION_NAME, {
         filter: {
           must: [{ key: "documentId", match: { value: documentId } }],
         },
-      }),
+      });
+    } catch (error: any) {
+      console.warn(
+        `[Qdrant Warning] Không thể xóa vector cho doc ${documentId}:`,
+        error?.message || error,
+      );
+    }
+
+    // 2. Xóa dữ liệu chuẩn trong MongoDB
+    await Promise.all([
       documentRepository.deleteChunksByDocumentId(documentId),
       documentRepository.deleteDocument(documentId),
     ]);

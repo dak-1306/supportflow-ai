@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { User2, Bot } from "lucide-react";
+import ReactMarkdown from "react-markdown"; // 👈 1. Import react-markdown
 import { IMessage } from "@supportflow/shared-types";
 import { useChatStore } from "@/store/chatStore";
 import { Button } from "@supportflow/ui/src/components/ui/button";
@@ -40,7 +41,6 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
         ) : (
           <div className="space-y-4 pb-2">
-            {/* 1. Nút Tải tin nhắn cũ */}
             {messages.length < totalInDb && messages.length > 0 && (
               <div className="flex justify-center my-1">
                 <Button
@@ -55,7 +55,6 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
               </div>
             )}
 
-            {/* 2. Hiển thị Welcome Message */}
             {messages.length === 0 && welcomeMessage && (
               <div className="flex gap-2.5 max-w-[85%] mr-auto animate-in fade-in duration-300">
                 <div className="flex h-6 w-6 shrink-0 select-none items-center justify-center rounded-md border border-border bg-card overflow-hidden">
@@ -70,14 +69,13 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                   )}
                 </div>
                 <div className="relative px-3.5 py-2 text-sm rounded-lg bg-card text-foreground border border-border rounded-tl-none shadow-sm">
-                  <p className="leading-relaxed whitespace-pre-wrap">
-                    {welcomeMessage}
-                  </p>
+                  <div className="leading-relaxed [&>p]:m-0">
+                    <ReactMarkdown>{welcomeMessage}</ReactMarkdown>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* 3. Danh sách các tin nhắn trong DB */}
             {messages.map((msg) => {
               const isCustomer = msg.sender === "CUSTOMER";
               return (
@@ -109,9 +107,10 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                         : "bg-card text-foreground border border-border rounded-tl-none"
                     }`}
                   >
-                    <p className="leading-relaxed whitespace-pre-wrap">
-                      {msg.message}
-                    </p>
+                    {/* 👈 2. Thay <p> bằng ReactMarkdown và style lại spacing */}
+                    <div className="leading-relaxed space-y-1.5 [&>p]:m-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h3]:font-bold [&>h3]:mt-2 [&>h3]:text-sm">
+                      <ReactMarkdown>{msg.message}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               );
@@ -119,7 +118,6 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
         )}
 
-        {/* 4. Indicator Trạng thái Đang gõ (Typing) */}
         {typingStatus.isTyping && (
           <div className="flex gap-2.5 max-w-[85%] mr-auto mt-4 pb-2">
             <div className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card overflow-hidden">

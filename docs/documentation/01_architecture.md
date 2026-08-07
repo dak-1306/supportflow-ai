@@ -81,6 +81,12 @@ Hệ thống cho phép Chuyên viên (Admin) can thiệp vào cuộc trò chuy�
 
 ## 4. Cấu trúc Database Schemas (Data Models)
 
+Sơ đồ thực thể quan hệ (ERD) thể hiện cấu trúc lưu trữ dữ liệu của SupportFlow AI trong MongoDB:
+
+<p align="center">
+    <img src="/docs/diagram/ERD.png" alt="ERD">
+</p>
+
 ### 4.1 Workspace (`workspaces`)
 
 Lưu trữ thông tin tổ chức, cấu hình AI Prompt và cấu hình giao diện Widget Chat.

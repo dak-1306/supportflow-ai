@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown"; // 👈 1. Import ReactMarkdown
 import {
   Send,
   Sparkles,
@@ -163,7 +164,7 @@ export const ChatWindow: React.FC = () => {
 
             <button
               className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs h-8 px-3 rounded-lg shadow-sm flex items-center"
-              onClick={() => setOpenConfirmResolve(false)}
+              onClick={() => setOpenConfirmResolve(true)}
               disabled={resolveMutation.isPending}
             >
               <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
@@ -203,7 +204,7 @@ export const ChatWindow: React.FC = () => {
               className={`flex flex-col gap-1 max-w-[75%] ${isAdmin ? "ml-auto items-end" : "mr-auto items-start"}`}
             >
               <div
-                className={`px-4 py-2.5 text-sm rounded-xl shadow-sm leading-relaxed whitespace-pre-wrap ${
+                className={`px-4 py-2.5 text-sm rounded-xl shadow-sm leading-relaxed ${
                   isAdmin
                     ? "bg-primary text-primary-foreground rounded-tr-none"
                     : isAI
@@ -216,7 +217,11 @@ export const ChatWindow: React.FC = () => {
                     AI Assistant
                   </span>
                 )}
-                {msg.message}
+
+                {/* 👈 2. Thay plain text bằng ReactMarkdown */}
+                <div className="space-y-1.5 [&>p]:m-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h3]:font-bold [&>h3]:text-sm [&>h3]:mt-1">
+                  <ReactMarkdown>{msg.message}</ReactMarkdown>
+                </div>
               </div>
               <span className="text-[10px] text-muted-foreground/60 px-1">
                 {msgTime} {isAI && "• Trợ lý AI"} {isAdmin && "• Admin"}

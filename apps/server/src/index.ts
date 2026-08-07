@@ -15,22 +15,22 @@ import { uploadRoutes } from "./modules/upload/upload.routes";
 import { errorHandler } from "@/shared/middlewares/error.middleware";
 import { connectDatabase } from "@/shared/config/database";
 import { initSocketHandler } from "@/modules/chat/socket/socketHandler";
-import { adminStrictCors } from "@/shared/middlewares/cors.middleware";
+import { dynamicCors } from "@/shared/middlewares/cors.middleware";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// 1. CORS Mặc định: Bảo vệ toàn bộ hệ thống Admin Dashboard
-app.use(adminStrictCors);
+// 1. Áp dụng Dynamic CORS tập trung toàn hệ thống
+app.use(dynamicCors);
 app.use(express.json());
 
-// 2. Socket.IO Mở rộng cho Widget nhúng
+// 2. Khởi tạo HTTP & Socket.IO Server
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "*", // WebSocket từ Widget các nơi đều kết nối được
+    origin: "*", // Mở kết nối WebSocket cho Widget ở mọi domain
     methods: ["GET", "POST"],
   },
 });
@@ -48,14 +48,17 @@ app.use("/api/v1", dashboardRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/uploads", uploadRoutes);
 
-// Health check & Error Handler
+// Health check endpoints
 const healthCheckHandler = (req: express.Request, res: express.Response) => {
   res.status(200).json({ status: "OK", uptime: process.uptime() });
 };
 app.get("/health", healthCheckHandler);
 app.get("/api/v1/health", healthCheckHandler);
+
+// Global Error Handler
 app.use(errorHandler);
 
+// 4. Khởi động Server
 const bootstrap = async () => {
   try {
     await connectDatabase();

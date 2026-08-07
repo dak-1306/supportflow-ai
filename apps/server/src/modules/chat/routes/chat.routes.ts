@@ -4,56 +4,69 @@ import {
   authMiddleware,
   requireRole,
 } from "@/shared/middlewares/auth.middleware";
-import { publicWidgetCors } from "@/shared/middlewares/cors.middleware";
 
 const router = Router();
 const chatController = new ChatController();
 
-// 🟢 Kênh mở cho Widget Customer (Áp dụng publicWidgetCors)
-router.post(
-  "/customer/conversations/init",
-  publicWidgetCors,
-  chatController.initConversation,
-);
+// Kênh mở cho Widget Customer (Không cần Auth)
+router.post("/customer/conversations/init", chatController.initConversation);
 router.get(
   "/customer/conversations/:conversationId/messages",
-  publicWidgetCors,
   chatController.getMessages,
 );
 router.post(
   "/customer/conversations/:conversationId/messages",
-  publicWidgetCors,
   chatController.customerSendMessage,
 );
 
-// 🔴 Kênh bảo mật cho Admin / Dashboard
+// Kênh bảo mật cho App Admin / Dashboard
 const allRoles = requireRole(["owner", "admin", "agent"]);
 
-router.use("/admin", authMiddleware, allRoles);
-
-router.get("/admin/conversations", chatController.adminGetConversations);
+router.get(
+  "/admin/conversations",
+  authMiddleware,
+  allRoles,
+  chatController.adminGetConversations,
+);
 router.get(
   "/admin/conversations/:conversationId/messages",
+  authMiddleware,
+  allRoles,
   chatController.getMessages,
 );
 router.post(
   "/admin/conversations/:conversationId/messages",
+  authMiddleware,
+  allRoles,
   chatController.adminSendMessage,
 );
+
+// Actions cho Human Handoff
 router.patch(
   "/admin/conversations/:conversationId/take-over",
+  authMiddleware,
+  allRoles,
   chatController.takeOver,
 );
+
 router.patch(
   "/admin/conversations/:conversationId/assign",
+  authMiddleware,
+  allRoles,
   chatController.assign,
 );
+
 router.patch(
   "/admin/conversations/:conversationId/resolve",
+  authMiddleware,
+  allRoles,
   chatController.resolve,
 );
+
 router.patch(
   "/admin/conversations/:conversationId/enable-ai",
+  authMiddleware,
+  allRoles,
   chatController.enableAI,
 );
 

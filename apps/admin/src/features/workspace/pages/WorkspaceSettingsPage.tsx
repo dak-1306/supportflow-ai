@@ -16,7 +16,6 @@ export const WorkspaceSettingsPage = () => {
   );
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Local Form States
   const [widgetForm, setWidgetForm] = useState<IWorkspaceWidgetConfig>({
     primaryColor: "#0066FF",
     title: "Hỗ trợ trực tuyến",
@@ -33,7 +32,6 @@ export const WorkspaceSettingsPage = () => {
       "Bạn là trợ lý AI hỗ trợ khách hàng lịch sự và chuyên nghiệp.",
   });
 
-  // Sync data từ Backend
   useEffect(() => {
     if (workspace) {
       if (workspace.widgetConfig) setWidgetForm(workspace.widgetConfig);
@@ -41,16 +39,12 @@ export const WorkspaceSettingsPage = () => {
     }
   }, [workspace]);
 
-  // Mã script tự động tạo từ workspace.id nếu backend không trả sẵn
   const cdnUrl =
     import.meta.env.VITE_WIDGET_CDN_URL ||
     "https://cdn.supportflow.com/widget.js";
   const embedScript =
     workspace?.embedScript ||
-    `<script>
-  window.SupportFlowConfig = { workspaceId: "${workspace?.id}" };
-</script>
-<script async src="${cdnUrl}"></script>`;
+    `<script>\n  window.SupportFlowConfig = { workspaceId: "${workspace?.id}" };\n</script>\n<script async src="${cdnUrl}"></script>`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,10 +53,9 @@ export const WorkspaceSettingsPage = () => {
     try {
       await updateWorkspace({
         widgetConfig: widgetForm,
-        aiConfig: aiForm,
       });
       setSuccessMsg("Cập nhật cấu hình Workspace thành công!");
-    } catch (err) {
+    } catch {
       // Error state được quản lý bởi hook
     }
   };
@@ -82,11 +75,13 @@ export const WorkspaceSettingsPage = () => {
             Cấu hình Workspace ({workspace?.name})
           </h1>
           <p className="text-sm text-slate-500">
-            Tùy chỉnh giao diện khung chat, tham số AI Bot và lấy mã nhúng
+            Tùy chỉnh giao diện khung chat, xem thông số AI Bot và lấy mã nhúng
             Website.
           </p>
         </div>
-        {activeTab !== "embed" && (
+
+        {/* 🟢 Chỉ cho phép Lưu khi ở Tab Widget */}
+        {activeTab === "widget" && (
           <button
             onClick={handleSubmit}
             disabled={saving}
@@ -147,9 +142,7 @@ export const WorkspaceSettingsPage = () => {
       {activeTab === "widget" && (
         <WidgetConfigForm value={widgetForm} onChange={setWidgetForm} />
       )}
-      {activeTab === "ai" && (
-        <AIConfigForm value={aiForm} onChange={setAiForm} />
-      )}
+      {activeTab === "ai" && <AIConfigForm value={aiForm} />}
       {activeTab === "embed" && <EmbedScriptTab embedScript={embedScript} />}
     </div>
   );

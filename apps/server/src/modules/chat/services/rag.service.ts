@@ -4,7 +4,7 @@ import { AppError } from "@/shared/utils/app-error";
 import {
   buildSupportSystemPrompt,
   RAG_FALLBACK_PHRASE,
-} from "@/modules/chat/prompts/support.prompt";
+} from "@/shared/prompts/support.prompt";
 import { RAG_CONFIG } from "@/modules/chat/constants/rag.constants";
 
 export interface Citation {

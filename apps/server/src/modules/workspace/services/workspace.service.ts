@@ -1,6 +1,7 @@
 import { WorkspaceRepository } from "@/modules/workspace/repositories/workspace.repository";
 import { IWorkspace, UpdateWorkspaceDto } from "@supportflow/shared-types";
 import { AppError } from "@/shared/utils/app-error";
+import { buildSupportSystemPrompt } from "@/shared/prompts/support.prompt";
 
 export class WorkspaceService {
   /**
@@ -21,9 +22,20 @@ export class WorkspaceService {
 </script>
 <script async src="${cdnUrl}"></script>`;
 
+    // 🟢 2. Sinh động System Prompt đầy đủ để hiển thị Read-Only trên UI Admin
+    const fullSystemPrompt = buildSupportSystemPrompt({
+      companyName: workspace.name,
+      context:
+        "[Tự động trích xuất từ Knowledge Base dựa trên câu hỏi của khách hàng]",
+    });
+
     return {
       ...workspace,
-      embedScript, // Trả kèm trường này cho Frontend
+      embedScript,
+      aiConfig: {
+        ...workspace.aiConfig,
+        systemPrompt: fullSystemPrompt, // Override trường này trước khi gửi về Frontend
+      },
     };
   }
 

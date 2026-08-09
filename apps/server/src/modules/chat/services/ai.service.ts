@@ -4,7 +4,7 @@ import {
   validateAiConfig,
   AI_MODELS,
 } from "@/shared/config/ai.config";
-import { buildSupportSystemPrompt } from "@/modules/chat/prompts/support.prompt";
+import { buildSupportSystemPrompt } from "@/shared/prompts/support.prompt";
 
 export class AIService {
   private modelName: string;

@@ -2,9 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { chatApi, MessagesResponse } from "@/services/chat.api";
 import { IMessage } from "@supportflow/shared-types";
 
+// 🟢 1. QUERY KEY FACTORY CHUẨN XÁC VỚI PHÂN TRANG
 export const widgetKeys = {
-  messages: (conversationId: string | null) =>
-    ["widget-messages", conversationId] as const,
+  messages: {
+    all: ["widget-messages"] as const,
+    byConversation: (conversationId: string | null) =>
+      ["widget-messages", conversationId] as const,
+    list: (conversationId: string | null, page = 1, limit = 50) =>
+      ["widget-messages", conversationId, { page, limit }] as const,
+  },
 };
 
 // Hook nạp lịch sử chat
@@ -14,11 +20,11 @@ export const useWidgetMessagesQuery = (
   limit = 50,
 ) => {
   return useQuery({
-    queryKey: widgetKeys.messages(conversationId),
+    queryKey: widgetKeys.messages.list(conversationId, page, limit),
     queryFn: () => chatApi.getMessages(conversationId!, page, limit),
     enabled: !!conversationId,
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 phút
   });
 };
 
@@ -32,13 +38,13 @@ export const useWidgetSendMessageMutation = (conversationId: string | null) => {
       return chatApi.sendMessage(conversationId, message);
     },
     onSuccess: (newMessage: IMessage) => {
-      // Cập nhật đúng Cache Key thống nhất
-      queryClient.setQueryData(
-        widgetKeys.messages(conversationId),
+      // 🟢 Cập nhật tất cả Query liên quan đến conversationId này
+      queryClient.setQueriesData(
+        { queryKey: widgetKeys.messages.byConversation(conversationId) },
         (oldData: MessagesResponse | undefined) => {
           if (!oldData) return { messages: [newMessage], total: 1 };
 
-          // Kiểm tra chống trùng theo ID chuẩn
+          // Chống trùng lặp tin nhắn
           const exists = oldData.messages.some((m) => m.id === newMessage.id);
           if (exists) return oldData;
 

@@ -1,16 +1,11 @@
-import {
-  getGoogleAI,
-  getQdrantClient,
-  validateAiConfig,
-  VECTOR_COLLECTION_NAME,
-} from "@/shared/config/ai.config";
+import { AI_MODELS, getGoogleAI } from "@/shared/config/ai.config";
+import { QDRANT_CONFIG, getQdrantClient } from "@/shared/config/qdrant.config";
 import { AppError } from "@/shared/utils/app-error";
 import {
   buildSupportSystemPrompt,
   RAG_FALLBACK_PHRASE,
 } from "@/modules/chat/prompts/support.prompt";
-
-const TOP_K_CHUNKS = 4;
+import { RAG_CONFIG } from "@/modules/chat/constants/rag.constants";
 
 export interface Citation {
   documentId: string;
@@ -27,15 +22,15 @@ export interface RAGQueryResult {
 
 async function callGeminiWithRetry<T>(
   fn: () => Promise<T>,
-  retries = 2,
-  delayMs = 3000,
+  retries: number = RAG_CONFIG.MAX_RETRIES, // 👈 Thêm : number
+  delayMs: number = RAG_CONFIG.RETRY_DELAY_MS, // 👈 Thêm : number
 ): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
     if (error.status === 429 || error.message?.includes("Quota exceeded")) {
       console.error(
-        "⚠️ Đã chạm giới hạn Quota Free Tier của Google (5 req/phút). Hủy Retry.",
+        "⚠️ Đã chạm giới hạn Quota Free Tier của Google. Hủy Retry.",
       );
       throw error;
     }
@@ -61,12 +56,11 @@ export class RAGService {
     question: string,
   ): Promise<RAGQueryResult> {
     try {
-      validateAiConfig();
       const clientAI = getGoogleAI();
 
-      // 1. Tạo Vector Embedding cho câu hỏi
+      // 1. Tạo Vector Embedding dùng AI_MODELS.EMBEDDING
       const embeddingResponse = await clientAI.models.embedContent({
-        model: "gemini-embedding-2",
+        model: AI_MODELS.EMBEDDING,
         contents: question,
       });
 
@@ -75,31 +69,25 @@ export class RAGService {
         throw new AppError("Không thể tạo vector embedding cho câu hỏi.", 500);
       }
 
-      // Log kiểm tra số chiều của Vector câu hỏi
-      console.log(`[RAG Debug] Query Vector Dimension: ${queryVector.length}`);
-
-      // 2. Tìm kiếm trong Qdrant (Bọc try-catch phòng trường hợp Collection chưa tồn tại)
+      // 2. Tìm kiếm trong Qdrant bằng QDRANT_CONFIG
       const qdrant = getQdrantClient();
       let searchResult: any[] = [];
-
-      // Ép kiểu string chuẩn xác cho workspaceId
       const cleanWorkspaceId = String(workspaceId);
 
       try {
-        searchResult = await qdrant.search(VECTOR_COLLECTION_NAME, {
+        searchResult = await qdrant.search(QDRANT_CONFIG.COLLECTION_NAME, {
           vector: queryVector,
-          limit: TOP_K_CHUNKS,
+          limit: RAG_CONFIG.TOP_K_CHUNKS,
           filter: {
             must: [
               {
                 key: "workspaceId",
-                match: { value: cleanWorkspaceId }, // 👈 Đảm bảo value luôn là string
+                match: { value: cleanWorkspaceId },
               },
             ],
           },
         });
       } catch (qdrantErr: any) {
-        // In chi tiết phản hồi lỗi từ Qdrant để debug chính xác
         console.error(
           `[Qdrant Search Error Detail]:`,
           qdrantErr?.response?.data || qdrantErr?.data || qdrantErr,
@@ -126,10 +114,10 @@ export class RAGService {
         context: contextText,
       });
 
-      // 5. Gọi Gemini Model (SỬA LẠI THÀNH "gemini-2.0-flash")
+      // 5. Gọi Gemini Model dùng AI_MODELS.CHAT
       const response = await callGeminiWithRetry(() =>
         clientAI.models.generateContent({
-          model: "gemini-3.5-flash", // 👈 Sửa từ "gemini-3.5-flash" thành "gemini-2.0-flash"
+          model: AI_MODELS.CHAT,
           contents: [
             {
               role: "user",
@@ -138,18 +126,13 @@ export class RAGService {
           ],
           config: {
             systemInstruction,
-            temperature: 0.2,
+            temperature: RAG_CONFIG.TEMPERATURE,
           },
         }),
       );
 
       const answerText = response.text || "Không thể khởi tạo câu trả lời.";
 
-      console.log(
-        `[RAGService] Question: "${question}" | Answer: "${answerText}" | Top Score: ${topScore} | Citations Found: ${citations.length}`,
-      );
-
-      // 6. QUYẾT ĐỊNH HANDOFF
       const shouldHandoff = answerText.includes(RAG_FALLBACK_PHRASE);
 
       return {

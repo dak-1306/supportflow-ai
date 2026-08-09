@@ -8,12 +8,15 @@ import { IDocument } from "@supportflow/shared-types";
 import { DocumentExtractor } from "../utils/document-extractor";
 import {
   getGoogleAI,
-  getQdrantClient,
   validateAiConfig,
-  VECTOR_COLLECTION_NAME,
-  VECTOR_SIZE,
+  AI_MODELS,
 } from "@/shared/config/ai.config";
-import { AppError } from "../../../shared/utils/app-error";
+import {
+  getQdrantClient,
+  QDRANT_CONFIG,
+  validateQdrantConfig,
+} from "@/shared/config/qdrant.config";
+import { AppError } from "@/shared/utils/app-error";
 
 export class KnowledgeBaseService {
   private async initQdrantCollection(): Promise<void> {
@@ -21,23 +24,23 @@ export class KnowledgeBaseService {
       const qdrantClient = getQdrantClient();
       const collections = await qdrantClient.getCollections();
       const exists = collections.collections.some(
-        (c) => c.name === VECTOR_COLLECTION_NAME,
+        (c) => c.name === QDRANT_CONFIG.COLLECTION_NAME,
       );
 
       if (!exists) {
         console.log(
-          `Tạo mới Qdrant collection "${VECTOR_COLLECTION_NAME}" (${VECTOR_SIZE} dimensions)...`,
+          `Tạo mới Qdrant collection "${QDRANT_CONFIG.COLLECTION_NAME}" (${QDRANT_CONFIG.VECTOR_SIZE} dimensions)...`,
         );
 
-        await qdrantClient.createCollection(VECTOR_COLLECTION_NAME, {
+        await qdrantClient.createCollection(QDRANT_CONFIG.COLLECTION_NAME, {
           vectors: {
-            size: VECTOR_SIZE,
+            size: QDRANT_CONFIG.VECTOR_SIZE,
             distance: "Cosine",
           },
         });
       } else {
         const collection = await qdrantClient.getCollection(
-          VECTOR_COLLECTION_NAME,
+          QDRANT_CONFIG.COLLECTION_NAME,
         );
 
         const currentSize =
@@ -45,24 +48,27 @@ export class KnowledgeBaseService {
             ? collection.config.params.vectors.size
             : undefined;
 
-        if (currentSize !== VECTOR_SIZE) {
+        if (currentSize !== QDRANT_CONFIG.VECTOR_SIZE) {
           throw new AppError(
-            `Qdrant collection "${VECTOR_COLLECTION_NAME}" có dimension ${currentSize}, nhưng yêu cầu ${VECTOR_SIZE}. Vui lòng xóa collection trên Qdrant và thử lại.`,
+            `Qdrant collection "${QDRANT_CONFIG.COLLECTION_NAME}" có dimension ${currentSize}, nhưng yêu cầu ${QDRANT_CONFIG.VECTOR_SIZE}. Vui lòng xóa collection trên Qdrant và thử lại.`,
             500,
           );
         }
       }
 
-      // 🟢 TẠO PAYLOAD INDEX CHO FIELD "workspaceId"
-      try {
-        await qdrantClient.createPayloadIndex(VECTOR_COLLECTION_NAME, {
+      // Tạo Payload Index cho workspaceId và documentId để tối ưu truy vấn/xóa
+      await Promise.allSettled([
+        qdrantClient.createPayloadIndex(QDRANT_CONFIG.COLLECTION_NAME, {
           field_name: "workspaceId",
           field_schema: "keyword",
           wait: true,
-        });
-      } catch (indexError) {
-        // Bỏ qua nếu index đã tồn tại từ trước
-      }
+        }),
+        qdrantClient.createPayloadIndex(QDRANT_CONFIG.COLLECTION_NAME, {
+          field_name: "documentId",
+          field_schema: "keyword",
+          wait: true,
+        }),
+      ]);
     } catch (error: any) {
       if (error instanceof AppError) throw error;
       throw new AppError(`Không thể khởi tạo Qdrant: ${error.message}`, 500);
@@ -112,6 +118,7 @@ export class KnowledgeBaseService {
 
     try {
       validateAiConfig();
+      validateQdrantConfig();
       await this.initQdrantCollection();
 
       const fullText = await DocumentExtractor.extractText(
@@ -126,7 +133,6 @@ export class KnowledgeBaseService {
 
       const clientAI = getGoogleAI();
 
-      // 🟢 1. XỬ LÝ RATE LIMIT: Chia nhỏ thành từng Batch (5 chunks/lần)
       const BATCH_SIZE = 5;
       const processedChunks: Array<{
         vectorId: string;
@@ -141,7 +147,7 @@ export class KnowledgeBaseService {
           chunkBatch.map(async (content, batchIndex) => {
             const index = i + batchIndex;
             const embeddingResponse = await clientAI.models.embedContent({
-              model: "gemini-embedding-2", // 👈 Giữ nguyên Model của bạn
+              model: AI_MODELS.EMBEDDING, // Sử dụng model từ AI_MODELS
               contents: content,
             });
 
@@ -164,7 +170,6 @@ export class KnowledgeBaseService {
       const qdrantPoints: any[] = [];
 
       for (const chunk of processedChunks) {
-        // 🟢 2. SỬA LỖI CASTING: Dùng new Types.ObjectId chuẩn Mongoose
         mongoChunks.push({
           documentId: new Types.ObjectId(document.id),
           workspaceId: new Types.ObjectId(document.workspaceId),
@@ -185,15 +190,13 @@ export class KnowledgeBaseService {
         });
       }
 
-      // Xóa bỏ tất cả các chunk cũ của documentId này nếu có
       await documentRepository.deleteChunksByDocumentId(documentId);
 
       const qdrantClient = getQdrantClient();
 
-      // Lưu đồng thời vào cả 2 database
       await Promise.all([
         documentRepository.createChunks(mongoChunks),
-        qdrantClient.upsert(VECTOR_COLLECTION_NAME, {
+        qdrantClient.upsert(QDRANT_CONFIG.COLLECTION_NAME, {
           wait: true,
           points: qdrantPoints,
         }),
@@ -233,11 +236,10 @@ export class KnowledgeBaseService {
       );
     }
 
-    // 1. Thử xóa Vector trên Qdrant (Bỏ qua lỗi nếu point/collection chưa có dữ liệu)
     try {
       await this.initQdrantCollection();
       const qdrantClient = getQdrantClient();
-      await qdrantClient.delete(VECTOR_COLLECTION_NAME, {
+      await qdrantClient.delete(QDRANT_CONFIG.COLLECTION_NAME, {
         filter: {
           must: [{ key: "documentId", match: { value: documentId } }],
         },
@@ -249,7 +251,6 @@ export class KnowledgeBaseService {
       );
     }
 
-    // 2. Xóa dữ liệu chuẩn trong MongoDB
     await Promise.all([
       documentRepository.deleteChunksByDocumentId(documentId),
       documentRepository.deleteDocument(documentId),

@@ -3,8 +3,8 @@ import { transformToJSON } from "../../../shared/utils/mongoose-preset";
 import {
   MessageSender,
   MessageType,
-  MESSAGE_SENDERS,
-  MESSAGE_TYPES,
+  MESSAGE_SENDER,
+  MESSAGE_TYPE,
 } from "@supportflow/shared-types";
 export interface IMessage extends MongooseDocument {
   conversationId: Types.ObjectId;
@@ -24,11 +24,11 @@ const MessageSchema = new Schema<IMessage>(
       ref: "Conversation",
       required: true,
     },
-    sender: { type: String, enum: MESSAGE_SENDERS, required: true },
+    sender: { type: String, enum: MESSAGE_SENDER, required: true },
     message: { type: String, required: true },
     type: {
       type: String,
-      enum: MESSAGE_TYPES,
+      enum: MESSAGE_TYPE,
       default: "TEXT",
       required: true,
     },

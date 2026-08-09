@@ -1,23 +1,35 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminChatApi } from "@/features/chat/services/chat.api";
 import { useAdminChatStore } from "@/features/chat/stores/chat.store";
-import { ConversationStatus } from "@supportflow/shared-types";
+import {
+  CONVERSATION_STATUS,
+  ConversationStatus,
+} from "@supportflow/shared-types";
 
+// 🟢 1. QUERY KEY FACTORY TỐI ƯU HÓA CACHE & INVALIDATION
 export const chatKeys = {
-  allConversations: (status?: ConversationStatus) =>
-    ["conversations", status] as const,
-  messages: (conversationId: string | null) =>
-    ["messages", conversationId] as const,
+  conversations: {
+    all: ["conversations"] as const,
+    list: (status?: ConversationStatus, page = 1, limit = 20) =>
+      ["conversations", { status, page, limit }] as const,
+  },
+  messages: {
+    all: ["messages"] as const,
+    byConversation: (conversationId: string | null) =>
+      ["messages", conversationId] as const,
+    list: (conversationId: string | null, page = 1, limit = 50) =>
+      ["messages", conversationId, { page, limit }] as const,
+  },
 };
 
 // Hook lấy danh sách cuộc hội thoại
 export const useConversationsQuery = (
-  status: ConversationStatus = "AI",
+  status: ConversationStatus = CONVERSATION_STATUS.AI,
   page = 1,
   limit = 20,
 ) => {
   return useQuery({
-    queryKey: chatKeys.allConversations(status),
+    queryKey: chatKeys.conversations.list(status, page, limit),
     queryFn: () => adminChatApi.getConversations(status, page, limit),
     refetchOnWindowFocus: true,
     staleTime: 0,
@@ -31,7 +43,7 @@ export const useMessagesQuery = (
   limit = 50,
 ) => {
   return useQuery({
-    queryKey: chatKeys.messages(conversationId),
+    queryKey: chatKeys.messages.list(conversationId, page, limit),
     queryFn: () => adminChatApi.getMessages(conversationId!, page, limit),
     enabled: !!conversationId,
     refetchOnWindowFocus: false,
@@ -51,16 +63,20 @@ export const useSendMessageMutation = (conversationId: string | null) => {
       return adminChatApi.sendMessage(conversationId, msg);
     },
     onSuccess: (newMessage) => {
-      setActiveConversationStatus("HUMAN");
+      setActiveConversationStatus(CONVERSATION_STATUS.HUMAN);
 
-      // Cập nhật Cache tin nhắn chuẩn
-      queryClient.setQueryData(
-        chatKeys.messages(conversationId),
+      // Cập nhật Cache cho tất cả Query khớp prefix cuộc hội thoại này
+      queryClient.setQueriesData(
+        { queryKey: chatKeys.messages.byConversation(conversationId) },
         (oldData: any) => {
-          if (!oldData)
-            return { messages: [newMessage], total: 1, status: "HUMAN" };
+          if (!oldData) {
+            return {
+              messages: [newMessage],
+              total: 1,
+              status: CONVERSATION_STATUS.HUMAN,
+            };
+          }
 
-          // Kiểm tra tránh trùng lặp id
           const exists = (oldData.messages || []).some(
             (m: any) => m.id === newMessage.id,
           );
@@ -68,14 +84,16 @@ export const useSendMessageMutation = (conversationId: string | null) => {
 
           return {
             ...oldData,
-            status: "HUMAN",
+            status: CONVERSATION_STATUS.HUMAN,
             messages: [...(oldData.messages || []), newMessage],
             total: (oldData.total || 0) + 1,
           };
         },
       );
 
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.conversations.all,
+      });
     },
   });
 };
@@ -91,10 +109,12 @@ export const useTakeOverMutation = () => {
     mutationFn: (conversationId: string) =>
       adminChatApi.takeOverConversation(conversationId),
     onSuccess: (_, conversationId) => {
-      setActiveConversationStatus("HUMAN");
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setActiveConversationStatus(CONVERSATION_STATUS.HUMAN);
       queryClient.invalidateQueries({
-        queryKey: chatKeys.messages(conversationId),
+        queryKey: chatKeys.conversations.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.messages.byConversation(conversationId),
       });
     },
   });
@@ -114,11 +134,13 @@ export const useResolveMutation = () => {
     mutationFn: (conversationId: string) =>
       adminChatApi.resolveConversation(conversationId),
     onSuccess: (_, conversationId) => {
-      setActiveConversationStatus("AI");
+      setActiveConversationStatus(CONVERSATION_STATUS.RESOLVED);
       setActiveConversationId(null);
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({
-        queryKey: chatKeys.messages(conversationId),
+        queryKey: chatKeys.conversations.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.messages.byConversation(conversationId),
       });
     },
   });
@@ -135,10 +157,12 @@ export const useEnableAIMutation = () => {
     mutationFn: (conversationId: string) =>
       adminChatApi.enableAI(conversationId),
     onSuccess: (_, conversationId) => {
-      setActiveConversationStatus("AI");
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setActiveConversationStatus(CONVERSATION_STATUS.AI);
       queryClient.invalidateQueries({
-        queryKey: chatKeys.messages(conversationId),
+        queryKey: chatKeys.conversations.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.messages.byConversation(conversationId),
       });
     },
   });

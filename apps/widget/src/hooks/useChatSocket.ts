@@ -2,7 +2,12 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useChatStore } from "@/store/chatStore";
 import { widgetKeys } from "@/hooks/useChatQueries";
-import { IMessage } from "@supportflow/shared-types";
+import {
+  IMessage,
+  SOCKET_EVENTS,
+  MESSAGE_SENDER,
+  MessageSender,
+} from "@supportflow/shared-types";
 import { notificationSound } from "@supportflow/assets";
 import { widgetSocket } from "@/utils/widgetSocket";
 
@@ -11,25 +16,18 @@ export const useChatSocket = () => {
   const { conversationId, setTypingStatus } = useChatStore();
   const processedMessageIds = useRef(new Set<string>());
 
-  // 🟢 1. XỬ LÝ JOIN / LEAVE ROOM KHI CONVERSATION_ID THAY ĐỔI
+  // 🟢 1. QUẢN LÝ JOIN / LEAVE ROOM KHI CONVERSATION_ID HOẶC SOCKET THAY ĐỔI
   useEffect(() => {
     if (!widgetSocket) return;
 
     const handleConnect = () => {
-      console.log("🟢 Widget Socket connected! ID:", widgetSocket.id);
       if (conversationId) {
-        console.log("🔗 Widget EMIT JOIN ROOM (ON CONNECT):", conversationId);
-        widgetSocket.emit("join_room", { conversationId });
+        widgetSocket.emit(SOCKET_EVENTS.JOIN_ROOM, { conversationId });
       }
     };
 
-    // Nếu socket đã connected sẵn thì emit luôn
     if (widgetSocket.connected && conversationId) {
-      console.log(
-        "🔗 Widget EMIT JOIN ROOM (ALREADY CONNECTED):",
-        conversationId,
-      );
-      widgetSocket.emit("join_room", { conversationId });
+      widgetSocket.emit(SOCKET_EVENTS.JOIN_ROOM, { conversationId });
     }
 
     widgetSocket.on("connect", handleConnect);
@@ -37,32 +35,28 @@ export const useChatSocket = () => {
     return () => {
       widgetSocket.off("connect", handleConnect);
       if (conversationId && widgetSocket.connected) {
-        widgetSocket.emit("leave_room", { conversationId });
+        widgetSocket.emit(SOCKET_EVENTS.LEAVE_ROOM, { conversationId });
       }
     };
   }, [conversationId]);
 
-  // 🟢 2. QUẢN LÝ EVENT LISTENERS DÙNG SINGLETON SOCKET
+  // 🟢 2. QUẢN LÝ EVENT LISTENERS NHẬN DỮ LIỆU
   useEffect(() => {
     if (!widgetSocket) return;
 
-    const handleConnect = () => {
-      console.log("🟢 Widget Socket connected! ID:", widgetSocket.id);
-      if (conversationId) {
-        widgetSocket.emit("join_room", { conversationId });
+    const handleTyping = (data: {
+      isTyping: boolean;
+      sender?: MessageSender;
+    }) => {
+      if (
+        data.sender === MESSAGE_SENDER.ADMIN ||
+        data.sender === MESSAGE_SENDER.AI
+      ) {
+        setTypingStatus(data.isTyping, data.sender);
       }
     };
 
-    const handleTyping = (data: {
-      isTyping: boolean;
-      sender?: "ADMIN" | "AI";
-    }) => {
-      setTypingStatus(data.isTyping, data.sender);
-    };
-
     const handleNewMessage = (message: IMessage) => {
-      console.log("📩 🔥 [WIDGET RECEIVED MESSAGE!]:", message);
-
       if (!conversationId) return;
 
       const convIdStr = String(conversationId);
@@ -75,9 +69,9 @@ export const useChatSocket = () => {
         setTimeout(() => processedMessageIds.current.delete(msgId), 5000);
       }
 
-      // CẬP NHẬT TRỰC TIẾP VÀO REACT QUERY CACHE
-      queryClient.setQueryData(
-        widgetKeys.messages(convIdStr),
+      // 🟢 Đã sửa: Bọc queryKey vào object { queryKey }
+      queryClient.setQueriesData(
+        { queryKey: widgetKeys.messages.byConversation(convIdStr) },
         (oldData: any) => {
           if (!oldData) return { messages: [message], total: 1 };
 
@@ -96,7 +90,7 @@ export const useChatSocket = () => {
 
       // Xử lý thông báo & phát tiếng khi Widget đóng
       const isWidgetOpen = useChatStore.getState().isOpen;
-      if (message.sender !== "CUSTOMER" && !isWidgetOpen) {
+      if (message.sender !== MESSAGE_SENDER.CUSTOMER && !isWidgetOpen) {
         useChatStore.getState().incrementUnreadCount();
         try {
           const audio = new Audio(notificationSound);
@@ -105,26 +99,23 @@ export const useChatSocket = () => {
       }
     };
 
-    // Đăng ký Listener
-    if (widgetSocket.connected) handleConnect();
-    widgetSocket.on("connect", handleConnect);
-    widgetSocket.on("typing_status", handleTyping);
-    widgetSocket.on("new_message", handleNewMessage);
+    // Đăng ký Event
+    widgetSocket.on(SOCKET_EVENTS.TYPING_STATUS, handleTyping);
+    widgetSocket.on(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
 
     // CLEANUP
     return () => {
-      widgetSocket.off("connect", handleConnect);
-      widgetSocket.off("typing_status", handleTyping);
-      widgetSocket.off("new_message", handleNewMessage);
+      widgetSocket.off(SOCKET_EVENTS.TYPING_STATUS, handleTyping);
+      widgetSocket.off(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
     };
   }, [conversationId, queryClient, setTypingStatus]);
 
   const emitTypingStatus = (isTyping: boolean) => {
     if (widgetSocket.connected && conversationId) {
-      widgetSocket.emit("typing_status", {
+      widgetSocket.emit(SOCKET_EVENTS.TYPING_STATUS, {
         conversationId,
         isTyping,
-        sender: "CUSTOMER",
+        sender: MESSAGE_SENDER.CUSTOMER,
       });
     }
   };

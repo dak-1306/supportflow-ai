@@ -1,19 +1,19 @@
-import { Schema, model, Document as MongooseDocument } from "mongoose";
+import { Schema, model, Types } from "mongoose";
 import { transformToJSON } from "../../../shared/utils/mongoose-preset";
 import {
   ConversationStatus,
-  CONVERSATION_STATUSES,
+  CONVERSATION_STATUS,
 } from "@supportflow/shared-types";
 
-export interface IConversation extends MongooseDocument {
-  workspaceId: Schema.Types.ObjectId;
+export interface IConversation {
+  workspaceId: Types.ObjectId | string; // Cho phép cả string lẫn ObjectId
   customerId: string;
   status: ConversationStatus;
-  assignedAdminId?: Schema.Types.ObjectId | null;
+  assignedAdminId?: Types.ObjectId | string | null;
   startedAt: Date;
   endedAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
   lastMessage?: string;
 }
 
@@ -27,7 +27,7 @@ const ConversationSchema = new Schema<IConversation>(
     customerId: { type: String, required: true },
     status: {
       type: String,
-      enum: CONVERSATION_STATUSES,
+      enum: CONVERSATION_STATUS,
       default: "AI",
       required: true,
     },

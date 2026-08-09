@@ -2,7 +2,14 @@ import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 import { useAuthStore } from "@/stores/auth.store";
-import { IMessage, ConversationStatus } from "@supportflow/shared-types";
+import {
+  IMessage,
+  ConversationStatus,
+  MessageSender,
+  SOCKET_EVENTS,
+  MESSAGE_SENDER,
+  CONVERSATION_STATUS,
+} from "@supportflow/shared-types";
 import { notificationSound } from "@supportflow/assets";
 import { adminSocket } from "@/features/chat/libs/adminSocket";
 
@@ -31,23 +38,23 @@ export const useAdminChatSocket = () => {
     } catch (e) {}
   }, []);
 
-  // 🟢 1. JOIN/LEAVE ROOM SẠCH SẼ
+  // 🟢 1. JOIN/LEAVE ROOM
   useEffect(() => {
     if (!adminSocket) return;
 
     if (workspaceId) {
-      adminSocket.emit("join_workspace", { workspaceId });
+      adminSocket.emit(SOCKET_EVENTS.JOIN_WORKSPACE, { workspaceId });
     }
 
     if (activeConversationId) {
-      console.log("🚀 Admin EMIT JOIN ROOM:", activeConversationId);
-      adminSocket.emit("join_room", { conversationId: activeConversationId });
+      adminSocket.emit(SOCKET_EVENTS.JOIN_ROOM, {
+        conversationId: activeConversationId,
+      });
     }
 
     return () => {
       if (activeConversationId) {
-        console.log("🚪 Admin LEAVE ROOM:", activeConversationId);
-        adminSocket.emit("leave_room", {
+        adminSocket.emit(SOCKET_EVENTS.LEAVE_ROOM, {
           conversationId: activeConversationId,
         });
       }
@@ -57,10 +64,13 @@ export const useAdminChatSocket = () => {
   // 🟢 2. KHỞI TẠO TẤT CẢ LISTENERS
   useEffect(() => {
     const handleConnect = () => {
-      console.log("🟢 Socket Admin Connected! ID:", adminSocket.id);
-      if (workspaceId) adminSocket.emit("join_workspace", { workspaceId });
+      if (workspaceId) {
+        adminSocket.emit(SOCKET_EVENTS.JOIN_WORKSPACE, { workspaceId });
+      }
       if (activeIdRef.current) {
-        adminSocket.emit("join_room", { conversationId: activeIdRef.current });
+        adminSocket.emit(SOCKET_EVENTS.JOIN_ROOM, {
+          conversationId: activeIdRef.current,
+        });
       }
     };
 
@@ -68,7 +78,6 @@ export const useAdminChatSocket = () => {
     const handleNewMessage = (
       rawMessage: IMessage & { conversationStatus?: ConversationStatus },
     ) => {
-      console.log("📩 🔥 [SOCKET RECEIVED ROOM MESSAGE]:", rawMessage);
       const msgId = rawMessage.id || (rawMessage as any)._id;
 
       if (msgId) {
@@ -100,8 +109,8 @@ export const useAdminChatSocket = () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
       if (
-        rawMessage.sender === "CUSTOMER" &&
-        rawMessage.conversationStatus !== "AI"
+        rawMessage.sender === MESSAGE_SENDER.CUSTOMER &&
+        rawMessage.conversationStatus !== CONVERSATION_STATUS.AI
       ) {
         playSound();
       }
@@ -119,19 +128,19 @@ export const useAdminChatSocket = () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
       if (
-        rawMessage.sender === "CUSTOMER" &&
-        rawMessage.conversationStatus !== "AI" &&
+        rawMessage.sender === MESSAGE_SENDER.CUSTOMER &&
+        rawMessage.conversationStatus !== CONVERSATION_STATUS.AI &&
         convIdStr !== currentActiveId
       ) {
         playSound();
         addNotification({
           conversationId: convIdStr,
           type:
-            rawMessage.conversationStatus === "WAITING_ADMIN"
+            rawMessage.conversationStatus === CONVERSATION_STATUS.WAITING_ADMIN
               ? "WAITING_HANDOFF"
               : "CUSTOMER_MESSAGE",
           title:
-            rawMessage.conversationStatus === "WAITING_ADMIN"
+            rawMessage.conversationStatus === CONVERSATION_STATUS.WAITING_ADMIN
               ? "Cần hỗ trợ gấp!"
               : "Tin nhắn mới",
           message: rawMessage.message || "Khách hàng đã gửi một tin nhắn.",
@@ -161,45 +170,50 @@ export const useAdminChatSocket = () => {
     }) => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
-      // Nếu là phòng đang mở -> Sync trạng thái Store
       if (String(data.conversationId) === String(activeIdRef.current)) {
         setActiveConversationStatus(data.status);
       }
     };
 
-    // ✍️ Kiểm tra Typing Indicator (Có lọc phòng)
+    // ✍️ Kiểm tra Typing Indicator
     const handleTyping = (data: {
       conversationId: string;
       isTyping: boolean;
-      sender?: string;
+      sender?: MessageSender;
     }) => {
-      // Chỉ cập nhật nếu event thuộc về phòng đang active
       if (
         data?.conversationId &&
         String(data.conversationId) !== String(activeIdRef.current)
       ) {
         return;
       }
-      if (data.sender === "AI") setAITyping(data.isTyping);
-      else if (data.sender === "CUSTOMER") setCustomerTyping(data.isTyping);
+      if (data.sender === MESSAGE_SENDER.AI) setAITyping(data.isTyping);
+      else if (data.sender === MESSAGE_SENDER.CUSTOMER)
+        setCustomerTyping(data.isTyping);
     };
 
     // Đăng ký Event
     if (adminSocket.connected) handleConnect();
     adminSocket.on("connect", handleConnect);
-    adminSocket.on("new_message", handleNewMessage);
-    adminSocket.on("workspace_new_message", handleWorkspaceMessage);
-    adminSocket.on("admin_notification", handleAdminNotification);
-    adminSocket.on("conversation_status_changed", handleStatusChanged);
-    adminSocket.on("typing_status", handleTyping);
+    adminSocket.on(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
+    adminSocket.on(SOCKET_EVENTS.WORKSPACE_NEW_MESSAGE, handleWorkspaceMessage);
+    adminSocket.on(SOCKET_EVENTS.ADMIN_NOTIFICATION, handleAdminNotification);
+    adminSocket.on(SOCKET_EVENTS.STATUS_CHANGED, handleStatusChanged);
+    adminSocket.on(SOCKET_EVENTS.TYPING_STATUS, handleTyping);
 
     return () => {
       adminSocket.off("connect", handleConnect);
-      adminSocket.off("new_message", handleNewMessage);
-      adminSocket.off("workspace_new_message", handleWorkspaceMessage);
-      adminSocket.off("admin_notification", handleAdminNotification);
-      adminSocket.off("conversation_status_changed", handleStatusChanged);
-      adminSocket.off("typing_status", handleTyping);
+      adminSocket.off(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);
+      adminSocket.off(
+        SOCKET_EVENTS.WORKSPACE_NEW_MESSAGE,
+        handleWorkspaceMessage,
+      );
+      adminSocket.off(
+        SOCKET_EVENTS.ADMIN_NOTIFICATION,
+        handleAdminNotification,
+      );
+      adminSocket.off(SOCKET_EVENTS.STATUS_CHANGED, handleStatusChanged);
+      adminSocket.off(SOCKET_EVENTS.TYPING_STATUS, handleTyping);
     };
   }, [
     queryClient,
@@ -213,10 +227,10 @@ export const useAdminChatSocket = () => {
 
   const emitAdminTyping = (isTyping: boolean) => {
     if (adminSocket.connected && activeConversationId) {
-      adminSocket.emit("typing_status", {
+      adminSocket.emit(SOCKET_EVENTS.TYPING_STATUS, {
         conversationId: activeConversationId,
         isTyping,
-        sender: "ADMIN",
+        sender: MESSAGE_SENDER.ADMIN,
       });
     }
   };

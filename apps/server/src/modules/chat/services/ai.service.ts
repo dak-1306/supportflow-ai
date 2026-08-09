@@ -1,12 +1,16 @@
 import { AppError } from "@/shared/utils/app-error";
-import { getGoogleAI, validateAiConfig } from "@/shared/config/ai.config";
+import {
+  getGoogleAI,
+  validateAiConfig,
+  AI_MODELS,
+} from "@/shared/config/ai.config";
 import { buildSupportSystemPrompt } from "@/modules/chat/prompts/support.prompt";
 
 export class AIService {
   private modelName: string;
 
   constructor() {
-    this.modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+    this.modelName = process.env.GEMINI_MODEL || AI_MODELS.CHAT;
   }
 
   async generateReply(

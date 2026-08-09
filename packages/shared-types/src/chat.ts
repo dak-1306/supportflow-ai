@@ -1,8 +1,17 @@
-export type MessageSender = "CUSTOMER" | "AI" | "ADMIN";
-export type MessageType = "TEXT" | "SYSTEM";
+// packages/shared-types/src/chat.ts
+export const MESSAGE_SENDER = {
+  CUSTOMER: "CUSTOMER",
+  AI: "AI",
+  ADMIN: "ADMIN",
+} as const;
+export type MessageSender =
+  (typeof MESSAGE_SENDER)[keyof typeof MESSAGE_SENDER];
 
-export const MESSAGE_SENDERS: MessageSender[] = ["CUSTOMER", "AI", "ADMIN"];
-export const MESSAGE_TYPES: MessageType[] = ["TEXT", "SYSTEM"];
+export const MESSAGE_TYPE = {
+  TEXT: "TEXT",
+  SYSTEM: "SYSTEM",
+} as const;
+export type MessageType = (typeof MESSAGE_TYPE)[keyof typeof MESSAGE_TYPE];
 export interface IMessage {
   id: string;
   conversationId: string;

@@ -1,17 +1,24 @@
 import React from "react";
 import { User } from "lucide-react";
-import { useProfile } from "@/features/profile/hooks/useProfile";
+import { useAuthStore } from "@/stores/auth.store";
 import { RoleBadge } from "@/features/profile/components/ProfileBadge";
 import { ProfileInfoForm } from "@/features/profile/components/ProfileInfoForm";
 import { ChangePasswordForm } from "@/features/profile/components/ChangePasswordForm";
 
+const PROFILE_PAGE_TEXTS = {
+  loadingMessage: "Đang tải thông tin cá nhân...",
+  workspaceIdLabel: "Workspace ID",
+  lastLoginLabel: "Đăng nhập gần nhất",
+} as const;
+
 export const ProfilePage: React.FC = () => {
-  const { user } = useProfile();
+  // Lấy trực tiếp user từ Zustand store với Selector
+  const user = useAuthStore((state) => state.user);
 
   if (!user) {
     return (
       <div className="p-8 text-center text-slate-500">
-        Đang tải thông tin cá nhân...
+        {PROFILE_PAGE_TEXTS.loadingMessage}
       </div>
     );
   }
@@ -40,13 +47,13 @@ export const ProfilePage: React.FC = () => {
           <p className="text-sm text-slate-500">{user.email}</p>
           <div className="text-xs text-slate-400 flex flex-wrap gap-4 pt-1">
             <span>
-              Workspace ID:{" "}
+              {PROFILE_PAGE_TEXTS.workspaceIdLabel}:{" "}
               <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-mono">
                 {user.workspaceId}
               </code>
             </span>
             <span>
-              Đăng nhập gần nhất:{" "}
+              {PROFILE_PAGE_TEXTS.lastLoginLabel}:{" "}
               {user.lastLogin
                 ? new Date(user.lastLogin).toLocaleString("vi-VN")
                 : "N/A"}

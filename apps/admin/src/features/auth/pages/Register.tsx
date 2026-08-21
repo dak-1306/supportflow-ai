@@ -1,25 +1,33 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  User,
-  Building,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
+import { Mail, User, Building, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom"; // Giả sử dùng React Router
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { registerSchema, RegisterFormValues } from "@supportflow/shared-types";
 import { useRegisterMutation } from "@/features/auth/hooks/use-auth";
 import { AuthLayout } from "@/features/auth/components/AuthLayout";
+import { PasswordField } from "@/shared/components/PasswordField";
+import { FormAlert } from "@/shared/components/form-alert";
+import { getErrorMessage } from "@/shared/utils/error";
+
+const REGISTER_TEXT = {
+  title: "Đăng ký tài khoản",
+  description: "Tạo tài khoản mới để bắt đầu trải nghiệm SupportFlow",
+  fullNameLabel: "Họ và tên",
+  fullNamePlaceholder: "Nguyen Van A",
+  emailLabel: "Địa chỉ Email",
+  emailPlaceholder: "name@company.com",
+  workspaceNameLabel: "Tên Workspace",
+  workspaceNamePlaceholder: "Tên công ty của bạn",
+  passwordLabel: "Mật khẩu",
+  passwordPlaceholder: "••••••••",
+  submitButton: "Đăng ký",
+  submitButtonLoading: "Đang tạo tài khoản...",
+  loginLink: "Đã có tài khoản? Đăng nhập ngay",
+};
 
 export default function Register() {
   const registerMutation = useRegisterMutation();
-  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -39,30 +47,26 @@ export default function Register() {
     registerMutation.mutate(data);
   };
 
-  const serverError = registerMutation.error as any;
-
   return (
     <AuthLayout>
       {/* Title */}
       <div className="text-center lg:text-left space-y-2">
         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-          Đăng ký tài khoản
+          {REGISTER_TEXT.title}
         </h2>
-        <p className="text-sm text-slate-500">
-          Tạo tài khoản mới để bắt đầu trải nghiệm SupportFlow
-        </p>
+        <p className="text-sm text-slate-500">{REGISTER_TEXT.description}</p>
       </div>
 
       {/* Banner Báo lỗi Server */}
       {registerMutation.isError && (
-        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-600 text-xs animate-shake">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>
-            {serverError?.response?.data?.message ||
-              serverError?.message ||
-              "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin!"}
-          </span>
-        </div>
+        <FormAlert
+          type="error"
+          message={
+            registerMutation.isError
+              ? getErrorMessage(registerMutation.error, "Đăng ký thất bại!")
+              : null
+          }
+        />
       )}
 
       {/* Form Đăng ký */}
@@ -70,7 +74,7 @@ export default function Register() {
         {/* Họ và tên */}
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-slate-700">
-            Họ và tên
+            {REGISTER_TEXT.fullNameLabel}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -78,7 +82,7 @@ export default function Register() {
             </div>
             <input
               type="text"
-              placeholder="Nguyen Van A"
+              placeholder={REGISTER_TEXT.fullNamePlaceholder}
               {...register("fullName")}
               className={`w-full pl-9 pr-3 py-2.5 bg-white border text-xs rounded-xl outline-none focus:ring-2 ${
                 errors.fullName
@@ -97,7 +101,7 @@ export default function Register() {
         {/* Email */}
         <div className="space-y-1.5">
           <label className="block text-xs font-semibold text-slate-700">
-            Địa chỉ Email
+            {REGISTER_TEXT.emailLabel}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -105,7 +109,7 @@ export default function Register() {
             </div>
             <input
               type="email"
-              placeholder="name@company.com"
+              placeholder={REGISTER_TEXT.emailPlaceholder}
               {...register("email")}
               className={`w-full pl-9 pr-3 py-2.5 bg-white border text-xs rounded-xl outline-none focus:ring-2 ${
                 errors.email
@@ -149,43 +153,12 @@ export default function Register() {
         </div>
 
         {/* Mật khẩu */}
-        <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-700">
-            Mật khẩu
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <Lock className="w-4 h-4" />
-            </div>
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              {...register("password")}
-              className={`w-full pl-9 pr-10 py-2.5 bg-white border text-xs rounded-xl outline-none focus:ring-2 ${
-                errors.password
-                  ? "border-red-500 focus:ring-red-200"
-                  : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-              tabIndex={-1}
-            >
-              {showPassword ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-          {errors.password && (
-            <p className="text-[11px] text-red-500 font-medium">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
+        <PasswordField
+          label={REGISTER_TEXT.passwordLabel}
+          placeholder={REGISTER_TEXT.passwordPlaceholder}
+          {...register("password")}
+          error={errors.password}
+        />
 
         {/* Submit button */}
         <Button
@@ -198,22 +171,21 @@ export default function Register() {
           {registerMutation.isPending ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Đang khởi tạo tài khoản...</span>
+              <span>{REGISTER_TEXT.submitButtonLoading}</span>
             </>
           ) : (
-            <span>Tạo tài khoản</span>
+            <span>{REGISTER_TEXT.submitButton}</span>
           )}
         </Button>
       </form>
 
       {/* Link chuyển sang trang Login */}
       <div className="text-center text-xs text-slate-500 pt-2">
-        Đã có tài khoản?{" "}
         <Link
           to="/login"
           className="font-semibold text-blue-600 hover:underline"
         >
-          Đăng nhập ngay
+          {REGISTER_TEXT.loginLink}
         </Link>
       </div>
     </AuthLayout>

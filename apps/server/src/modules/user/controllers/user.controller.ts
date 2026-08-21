@@ -70,6 +70,7 @@ export class UserController {
         req.params.id,
         req.user!.workspaceId,
       );
+
       sendSuccess(res, updatedUser, "Cập nhật trạng thái thành công");
     } catch (error) {
       next(error);

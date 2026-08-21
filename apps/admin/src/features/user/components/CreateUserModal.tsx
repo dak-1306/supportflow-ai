@@ -1,7 +1,28 @@
 import React, { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createUserSchema, CreateUserDto } from "@supportflow/shared-types"; // Import từ package validation
+import { createUserSchema, CreateUserDto } from "@supportflow/shared-types";
+
+import { Button } from "@supportflow/ui/src/components/ui/button";
+import { Input } from "@supportflow/ui/src/components/ui/input";
+import { PasswordField } from "@/shared/components/PasswordField";
+import { FormAlert } from "@/shared/components/form-alert";
+import { Label } from "@supportflow/ui/src/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@supportflow/ui/src/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@supportflow/ui/src/components/ui/select";
+import { getErrorMessage } from "@/shared/utils/error";
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -10,6 +31,31 @@ interface CreateUserModalProps {
   isLoading: boolean;
   currentUserRole?: "owner" | "admin" | "agent";
 }
+
+const CREATE_USER_TEXTS = {
+  title: "Thêm thành viên mới",
+  labels: {
+    name: "Họ và tên",
+    email: "Email",
+    password: "Mật khẩu",
+    role: "Vai trò",
+  },
+  placeholders: {
+    name: "Nguyễn Văn A",
+    email: "user@supportflow.com",
+    password: "••••••••",
+    selectRole: "Chọn vai trò",
+  },
+  roles: {
+    agent: "Agent (Tư vấn viên)",
+    admin: "Admin (Quản trị viên)",
+  },
+  buttons: {
+    cancel: "Hủy",
+    submitLoading: "Đang xử lý...",
+    submit: "Tạo tài khoản",
+  },
+} as const;
 
 export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   isOpen,
@@ -22,6 +68,9 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     register,
     handleSubmit,
     reset,
+    control,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<CreateUserDto>({
     resolver: zodResolver(createUserSchema),
@@ -33,137 +82,141 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     },
   });
 
-  // Tự động reset form mỗi khi Modal mở ra
   useEffect(() => {
     if (isOpen) {
-      reset({
-        name: "",
-        email: "",
-        password: "",
-        role: "agent",
-      });
+      reset({ name: "", email: "", password: "", role: "agent" });
+      clearErrors();
     }
-  }, [isOpen, reset]);
-
-  if (!isOpen) return null;
+  }, [isOpen, reset, clearErrors]);
 
   const handleFormSubmit = async (data: CreateUserDto) => {
     try {
-      await onSubmit(data); // Đợi API tạo thành công
-      reset(); // Reset form
-      onClose(); // Sau đó mới đóng Modal
+      clearErrors("root");
+      await onSubmit(data);
+      reset();
+      onClose();
     } catch (error) {
-      // Nếu API lỗi thì giữ nguyên Modal để user xem thông báo lỗi
-      console.error("Lỗi tạo user:", error);
+      setError("root", {
+        type: "manual",
+        message: getErrorMessage(error),
+      });
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      {/* Click ngoài lề để đóng modal */}
-      <div className="fixed inset-0" onClick={onClose} />
-
-      <div className="relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
-        <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-          Thêm thành viên mới
-        </h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{CREATE_USER_TEXTS.title}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-          {/* Tên */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Họ và tên
-            </label>
-            <input
+          {errors.root && (
+            <FormAlert type="error" message={getErrorMessage(errors.root)} />
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="name">{CREATE_USER_TEXTS.labels.name}</Label>
+            <Input
+              id="name"
               type="text"
-              {...register("name")}
               disabled={isLoading}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              placeholder="Nguyễn Văn A"
+              placeholder={CREATE_USER_TEXTS.placeholders.name}
+              {...register("name")}
             />
             {errors.name && (
-              <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
+              <p className="text-xs text-red-500">
+                {getErrorMessage(errors.name)}
+              </p>
             )}
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="email">{CREATE_USER_TEXTS.labels.email}</Label>
+            <Input
+              id="email"
               type="email"
-              {...register("email")}
               disabled={isLoading}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              placeholder="user@supportflow.com"
+              placeholder={CREATE_USER_TEXTS.placeholders.email}
+              {...register("email")}
             />
             {errors.email && (
-              <p className="mt-1 text-xs text-red-500">
-                {errors.email.message}
+              <p className="text-xs text-red-500">
+                {getErrorMessage(errors.email)}
               </p>
             )}
           </div>
 
-          {/* Mật khẩu */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Mật khẩu
-            </label>
-            <input
-              type="password"
-              {...register("password")}
+          <div className="space-y-1.5">
+            <Label htmlFor="password">
+              {CREATE_USER_TEXTS.labels.password}
+            </Label>
+            <PasswordField
+              id="password"
               disabled={isLoading}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              placeholder="••••••••"
+              placeholder={CREATE_USER_TEXTS.placeholders.password}
+              {...register("password")}
             />
             {errors.password && (
-              <p className="mt-1 text-xs text-red-500">
-                {errors.password.message}
+              <p className="text-xs text-red-500">
+                {getErrorMessage(errors.password)}
               </p>
             )}
           </div>
 
-          {/* Vai trò */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Vai trò
-            </label>
-            <select
-              {...register("role")}
-              disabled={isLoading}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="agent">Agent (Tư vấn viên)</option>
-              {currentUserRole === "owner" && (
-                <option value="admin">Admin (Quản trị viên)</option>
+          <div className="space-y-1.5">
+            <Label htmlFor="role">{CREATE_USER_TEXTS.labels.role}</Label>
+            <Controller
+              name="role"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  disabled={isLoading}
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <SelectTrigger id="role">
+                    <SelectValue
+                      placeholder={CREATE_USER_TEXTS.placeholders.selectRole}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agent">
+                      {CREATE_USER_TEXTS.roles.agent}
+                    </SelectItem>
+                    {currentUserRole === "owner" && (
+                      <SelectItem value="admin">
+                        {CREATE_USER_TEXTS.roles.admin}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               )}
-            </select>
+            />
             {errors.role && (
-              <p className="mt-1 text-xs text-red-500">{errors.role.message}</p>
+              <p className="text-xs text-red-500">
+                {getErrorMessage(errors.role)}
+              </p>
             )}
           </div>
 
-          {/* Buttons */}
-          <div className="mt-6 flex justify-end gap-3">
-            <button
+          <DialogFooter className="pt-2">
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isLoading}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isLoading ? "Đang xử lý..." : "Tạo tài khoản"}
-            </button>
-          </div>
+              {CREATE_USER_TEXTS.buttons.cancel}
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading
+                ? CREATE_USER_TEXTS.buttons.submitLoading
+                : CREATE_USER_TEXTS.buttons.submit}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

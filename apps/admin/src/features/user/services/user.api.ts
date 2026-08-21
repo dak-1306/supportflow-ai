@@ -3,53 +3,21 @@ import { IUser, CreateUserDto } from "@supportflow/shared-types";
 
 export const userApi = {
   getUsers: async (): Promise<IUser[]> => {
-    try {
-      const response = await api.get("/users");
-      return response.data.data;
-    } catch (error: any) {
-      const serverMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Lỗi không thể lấy danh sách người dùng";
-      throw new Error(serverMessage);
-    }
+    const { data } = await api.get("/users");
+    return data.data;
   },
 
   createUser: async (payload: CreateUserDto): Promise<IUser> => {
-    try {
-      const response = await api.post("/users", payload);
-      return response.data.data;
-    } catch (error: any) {
-      const serverMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Lỗi không thể tạo tài khoản người dùng";
-      throw new Error(serverMessage);
-    }
+    const { data } = await api.post("/users", payload);
+    return data.data;
   },
 
   toggleStatus: async (userId: string): Promise<IUser> => {
-    try {
-      const response = await api.patch(`/users/${userId}/toggle-status`);
-      return response.data.data;
-    } catch (error: any) {
-      const serverMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Lỗi không thể cập nhật trạng thái người dùng";
-      throw new Error(serverMessage);
-    }
+    const { data } = await api.patch(`/users/${userId}/toggle-status`);
+    return data.data;
   },
 
   deleteUser: async (userId: string): Promise<void> => {
-    try {
-      await api.delete(`/users/${userId}`);
-    } catch (error: any) {
-      const serverMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Lỗi không thể xóa người dùng";
-      throw new Error(serverMessage);
-    }
+    await api.delete(`/users/${userId}`);
   },
 };

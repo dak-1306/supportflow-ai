@@ -90,28 +90,35 @@ export class UserService {
 
   // 6. Đổi trạng thái active/inactive
   async toggleUserStatus(
-    operatorRole: "owner" | "admin" | "agent",
-    targetUserId: string,
-    workspaceId: string,
-  ) {
-    const targetUser = await this.userRepo.findByIdAndWorkspace(
-      targetUserId,
-      workspaceId,
-    );
-    if (!targetUser) throw new AppError("Không tìm thấy người dùng", 404);
+  operatorRole: "owner" | "admin" | "agent",
+  targetUserId: string,
+  workspaceId: string,
+) {
+  const targetUser = await this.userRepo.findByIdAndWorkspace(
+    targetUserId,
+    workspaceId,
+  );
 
-    if (targetUser.role === "owner") {
-      throw new AppError("Không thể thay đổi trạng thái của Owner!", 403);
-    }
+  if (!targetUser) throw new AppError("Không tìm thấy người dùng", 404);
 
-    if (operatorRole === "admin" && targetUser.role === "admin") {
-      throw new AppError("Admin không thể khóa tài khoản Admin khác!", 403);
-    }
-
-    targetUser.status = targetUser.status === "active" ? "inactive" : "active";
-    await targetUser.save();
-    return targetUser;
+  if (targetUser.role === "owner") {
+    throw new AppError("Không thể thay đổi trạng thái của Owner!", 403);
   }
+
+  if (operatorRole === "admin" && targetUser.role === "admin") {
+    throw new AppError("Admin không thể khóa tài khoản Admin khác!", 403);
+  }
+
+  const nextStatus = targetUser.status === "active" ? "inactive" : "active";
+
+  // ✅ Dùng hàm update() từ BaseRepository thay vì targetUser.save()
+  const updatedUser = await this.userRepo.update(
+    targetUser._id || targetUser.id, 
+    { status: nextStatus }
+  );
+
+  return updatedUser;
+}
 
   // 7. Xóa tài khoản
   async deleteUser(

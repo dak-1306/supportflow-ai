@@ -1,13 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import ReactMarkdown from "react-markdown"; // 👈 1. Import ReactMarkdown
-import {
-  Send,
-  Sparkles,
-  ShieldAlert,
-  UserCheck,
-  CheckCircle2,
-  Bot,
-} from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 import { useAdminChatSocket } from "@/features/chat/hooks/useAdminChatSocket";
 import {
@@ -18,29 +10,49 @@ import {
   useEnableAIMutation,
 } from "@/features/chat/hooks/useChatQueries";
 import { Button } from "@supportflow/ui/src/components/ui/button";
-import { Input } from "@supportflow/ui/src/components/ui/input";
 import { ConfirmModal } from "@/shared/components/ConfirmModal";
 import { IMessage } from "@supportflow/shared-types";
+import { ChatMessageItem } from "./ChatMessageItem";
+import { ChatHeaderBanner, ConfirmType } from "./ChatHeaderBanner";
+import { ChatInput } from "./ChatInput";
 
+const CHAT_WINDOW_TEXT = {
+  noConversationSelectedText: "Chưa có hội thoại nào được chọn",
+  syncingConversationText: "Đang đồng bộ hội thoại...",
+  viewOlderMessagesText: "Xem tin nhắn cũ hơn",
+  customerTypingText: "Khách hàng đang nhập tin nhắn...",
+  resolveModal: {
+    title: "Xác nhận hoàn thành",
+    description:
+      "Bạn có chắc chắn muốn đánh dấu hội thoại này là hoàn thành không?",
+    confirmText: "Hoàn thành",
+  },
+  enableAIBotModal: {
+    title: "Xác nhận bật AI Bot",
+    description:
+      "Bạn có chắc chắn muốn bật lại AI Bot cho hội thoại này không?",
+    confirmText: "Bật AI Bot",
+  },
+  takeOverModal: {
+    title: "Xác nhận tiếp quản hội thoại",
+    description: "Bạn có chắc chắn muốn tiếp quản hội thoại này không?",
+    confirmText: "Tiếp quản",
+  },
+};
 export const ChatWindow: React.FC = () => {
-  const activeConversationId = useAdminChatStore(
-    (state) => state.activeConversationId,
-  );
+  const activeConversationId = useAdminChatStore((s) => s.activeConversationId);
   const activeConversationStatus = useAdminChatStore(
-    (state) => state.activeConversationStatus,
+    (s) => s.activeConversationStatus,
   );
-  const isCustomerTyping = useAdminChatStore((state) => state.isCustomerTyping);
+  const isCustomerTyping = useAdminChatStore((s) => s.isCustomerTyping);
 
   const { emitAdminTyping } = useAdminChatSocket();
 
   const [page, setPage] = useState(1);
-  const [text, setText] = useState("");
-  const [openConfirmResolve, setOpenConfirmResolve] = useState(false);
-  const [openConfirmEnableAI, setOpenConfirmEnableAI] = useState(false);
-  const [openTakeOverConfirm, setOpenTakeOverConfirm] = useState(false);
+  const [confirmType, setConfirmType] = useState<ConfirmType>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPaginatingRef = useRef(false);
 
   const { data, isLoading, isFetching } = useMessagesQuery(
     activeConversationId,
@@ -57,18 +69,23 @@ export const ChatWindow: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    isPaginatingRef.current = false;
   }, [activeConversationId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isCustomerTyping]);
+    if (!isPaginatingRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    isPaginatingRef.current = false;
+  }, [messages.length, isCustomerTyping]);
 
   if (!activeConversationId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-background text-muted-foreground p-8 text-center select-none">
         <Sparkles className="h-8 w-8 text-muted-foreground/40 mb-3 animate-pulse" />
-        <p className="text-sm font-medium">Chưa có hội thoại nào được chọn</p>
+        <p className="text-sm font-medium">
+          {CHAT_WINDOW_TEXT.noConversationSelectedText}
+        </p>
       </div>
     );
   }
@@ -76,103 +93,20 @@ export const ChatWindow: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background text-sm text-muted-foreground">
-        Đang đồng bộ hội thoại...
+        {CHAT_WINDOW_TEXT.syncingConversationText}
       </div>
     );
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setText(e.target.value);
-    emitAdminTyping(true);
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => emitAdminTyping(false), 2000);
-  };
-
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!text.trim() || sendMessageMutation.isPending) return;
-    const msgText = text.trim();
-    setText("");
-    emitAdminTyping(false);
-    sendMessageMutation.mutate(msgText);
-  };
-
-  const handleResolve = () => {
-    if (resolveMutation.isPending) return;
-    resolveMutation.mutate(activeConversationId, {
-      onSuccess: () => setOpenConfirmResolve(false),
-    });
-  };
-
-  const handleAIEnable = () => {
-    if (enableAIMutation.isPending) return;
-    enableAIMutation.mutate(activeConversationId, {
-      onSuccess: () => setOpenConfirmEnableAI(false),
-    });
-  };
-
-  const handleTakeOver = () => {
-    if (takeOverMutation.isPending) return;
-    takeOverMutation.mutate(activeConversationId, {
-      onSuccess: () => setOpenTakeOverConfirm(false),
-    });
-  };
-
   return (
     <div className="flex-1 flex flex-col bg-background/50 h-full min-h-0 overflow-hidden">
-      {/* HANDOFF BANNER */}
-      {conversationStatus === "WAITING_ADMIN" && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 p-3 px-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5 text-amber-600 text-xs font-medium">
-            <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 animate-bounce" />
-            <span>
-              AI đã tạm ngưng do độ tin cậy thấp. Khách hàng đang chờ Admin hỗ
-              trợ!
-            </span>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => setOpenTakeOverConfirm(true)}
-            disabled={takeOverMutation.isPending}
-            className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8 px-3 rounded-lg shadow-sm"
-          >
-            <UserCheck className="w-3.5 h-3.5 mr-1.5" />
-            {takeOverMutation.isPending
-              ? "Đang tiếp quản..."
-              : "Tiếp Quản Ngay"}
-          </Button>
-        </div>
-      )}
-
-      {/* BANNER HUMAN */}
-      {conversationStatus === "HUMAN" && (
-        <div className="bg-emerald-500/10 border-b border-emerald-500/20 p-2.5 px-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 text-emerald-600 text-xs font-medium">
-            <UserCheck className="w-4 h-4 text-emerald-500" />
-            <span>Bạn đang tiếp quản hội thoại này (AI đã tắt).</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              className="bg-purple-500 hover:bg-purple-600 text-white text-xs h-8 px-3 rounded-lg shadow-sm flex items-center"
-              onClick={() => setOpenConfirmEnableAI(true)}
-              disabled={enableAIMutation.isPending}
-            >
-              <Bot className="w-3.5 h-3.5 mr-1 text-white" />
-              {enableAIMutation.isPending ? "Đang bật..." : "Bật AI Bot"}
-            </button>
-
-            <button
-              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs h-8 px-3 rounded-lg shadow-sm flex items-center"
-              onClick={() => setOpenConfirmResolve(true)}
-              disabled={resolveMutation.isPending}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-              Hoàn thành
-            </button>
-          </div>
-        </div>
-      )}
+      <ChatHeaderBanner
+        status={conversationStatus}
+        isTakeOverPending={takeOverMutation.isPending}
+        isEnableAIPending={enableAIMutation.isPending}
+        isResolvePending={resolveMutation.isPending}
+        onOpenModal={(type) => setConfirmType(type)}
+      />
 
       {/* VÙNG TIN NHẮN */}
       <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4">
@@ -182,53 +116,22 @@ export const ChatWindow: React.FC = () => {
               variant="outline"
               size="sm"
               disabled={isFetching}
-              onClick={() => setPage((prev) => prev + 1)}
+              onClick={() => {
+                isPaginatingRef.current = true;
+                setPage((prev) => prev + 1);
+              }}
               className="text-xs h-8 rounded-full px-4"
             >
-              {isFetching ? "Đang xử lý..." : "Xem tin nhắn cũ hơn"}
+              {isFetching
+                ? "Đang xử lý..."
+                : CHAT_WINDOW_TEXT.viewOlderMessagesText}
             </Button>
           </div>
         )}
 
-        {messages.map((msg) => {
-          const isAdmin = msg.sender === "ADMIN";
-          const isAI = msg.sender === "AI";
-          const msgTime = new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
-          return (
-            <div
-              key={msg.id}
-              className={`flex flex-col gap-1 max-w-[75%] ${isAdmin ? "ml-auto items-end" : "mr-auto items-start"}`}
-            >
-              <div
-                className={`px-4 py-2.5 text-sm rounded-xl shadow-sm leading-relaxed ${
-                  isAdmin
-                    ? "bg-primary text-primary-foreground rounded-tr-none"
-                    : isAI
-                      ? "bg-purple-500/10 text-purple-700 border border-purple-200 rounded-tl-none font-medium"
-                      : "bg-card text-foreground border border-border rounded-tl-none"
-                }`}
-              >
-                {isAI && (
-                  <span className="text-[10px] block text-purple-500 uppercase font-bold tracking-wider mb-1">
-                    AI Assistant
-                  </span>
-                )}
-
-                {/* 👈 2. Thay plain text bằng ReactMarkdown */}
-                <div className="space-y-1.5 [&>p]:m-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h3]:font-bold [&>h3]:text-sm [&>h3]:mt-1">
-                  <ReactMarkdown>{msg.message}</ReactMarkdown>
-                </div>
-              </div>
-              <span className="text-[10px] text-muted-foreground/60 px-1">
-                {msgTime} {isAI && "• Trợ lý AI"} {isAdmin && "• Admin"}
-              </span>
-            </div>
-          );
-        })}
+        {messages.map((msg) => (
+          <ChatMessageItem key={msg.id} msg={msg} />
+        ))}
 
         {isCustomerTyping && (
           <div className="flex justify-start mr-auto">
@@ -243,68 +146,59 @@ export const ChatWindow: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* INPUT BANNER */}
-      <div className="p-4 bg-card border-t border-border shrink-0">
-        <form
-          onSubmit={handleSend}
-          className="flex items-center gap-2 max-w-5xl mx-auto"
-        >
-          <Input
-            type="text"
-            value={text}
-            onChange={handleInputChange}
-            placeholder={
-              conversationStatus === "WAITING_ADMIN"
-                ? "Bấm 'Tiếp Quản Ngay' hoặc gõ tin nhắn để trả lời khách..."
-                : "Nhập phản hồi trực tiếp tới khách hàng..."
-            }
-            className="flex-1 bg-background border-input px-4 py-2.5 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0"
-          />
-          <Button
-            type="submit"
-            disabled={!text.trim() || sendMessageMutation.isPending}
-            size="icon"
-            className="h-10 w-10 shrink-0 flex items-center"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
-      </div>
+      <ChatInput
+        conversationStatus={conversationStatus}
+        isSending={sendMessageMutation.isPending}
+        onAdminTyping={emitAdminTyping}
+        onSend={(msgText) => {
+          isPaginatingRef.current = false;
+          sendMessageMutation.mutate(msgText);
+        }}
+      />
 
       {/* MODALS */}
       <ConfirmModal
-        isOpen={openConfirmResolve}
+        isOpen={confirmType === "RESOLVE"}
         isLoading={resolveMutation.isPending}
-        onClose={() => setOpenConfirmResolve(false)}
-        onConfirm={handleResolve}
-        title="Xác nhận hoàn thành"
-        description="Bạn có chắc chắn muốn đánh dấu hội thoại này là hoàn thành không?"
-        confirmText="Hoàn thành"
-        cancelText="Hủy"
+        onClose={() => setConfirmType(null)}
+        onConfirm={() =>
+          resolveMutation.mutate(activeConversationId, {
+            onSuccess: () => setConfirmType(null),
+          })
+        }
+        title={CHAT_WINDOW_TEXT.resolveModal.title}
+        description={CHAT_WINDOW_TEXT.resolveModal.description}
+        confirmText={CHAT_WINDOW_TEXT.resolveModal.confirmText}
         variant="primary"
       />
 
       <ConfirmModal
-        isOpen={openConfirmEnableAI}
+        isOpen={confirmType === "ENABLE_AI"}
         isLoading={enableAIMutation.isPending}
-        onClose={() => setOpenConfirmEnableAI(false)}
-        onConfirm={handleAIEnable}
-        title="Xác nhận bật AI Bot"
-        description="Bạn có chắc chắn muốn bật lại AI Bot cho hội thoại này không?"
-        confirmText="Bật AI Bot"
-        cancelText="Hủy"
+        onClose={() => setConfirmType(null)}
+        onConfirm={() =>
+          enableAIMutation.mutate(activeConversationId, {
+            onSuccess: () => setConfirmType(null),
+          })
+        }
+        title={CHAT_WINDOW_TEXT.enableAIBotModal.title}
+        description={CHAT_WINDOW_TEXT.enableAIBotModal.description}
+        confirmText={CHAT_WINDOW_TEXT.enableAIBotModal.confirmText}
         variant="primary"
       />
 
       <ConfirmModal
-        isOpen={openTakeOverConfirm}
+        isOpen={confirmType === "TAKE_OVER"}
         isLoading={takeOverMutation.isPending}
-        onClose={() => setOpenTakeOverConfirm(false)}
-        onConfirm={handleTakeOver}
-        title="Xác nhận tiếp quản hội thoại"
-        description="Bạn có chắc chắn muốn tiếp quản hội thoại này không?"
-        confirmText="Tiếp quản"
-        cancelText="Hủy"
+        onClose={() => setConfirmType(null)}
+        onConfirm={() =>
+          takeOverMutation.mutate(activeConversationId, {
+            onSuccess: () => setConfirmType(null),
+          })
+        }
+        title={CHAT_WINDOW_TEXT.takeOverModal.title}
+        description={CHAT_WINDOW_TEXT.takeOverModal.description}
+        confirmText={CHAT_WINDOW_TEXT.takeOverModal.confirmText}
         variant="primary"
       />
     </div>

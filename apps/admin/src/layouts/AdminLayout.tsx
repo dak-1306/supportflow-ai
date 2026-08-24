@@ -11,6 +11,14 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
+const ADMIN_LAYOUT_TEXT = {
+  confirmLogoutTitle: "Xác nhận đăng xuất",
+  confirmLogoutDescription:
+    "Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?",
+  confirmLogoutConfirmText: "Đăng xuất",
+  confirmLogoutCancelText: "Hủy",
+};
+
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
@@ -55,10 +63,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         isOpen={openConfirmLogout}
         onClose={() => setOpenConfirmLogout(false)}
         onConfirm={handleLogout}
-        title="Xác nhận đăng xuất"
-        description="Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?"
-        confirmText="Đăng xuất"
-        cancelText="Hủy"
+        title={ADMIN_LAYOUT_TEXT.confirmLogoutTitle}
+        description={ADMIN_LAYOUT_TEXT.confirmLogoutDescription}
+        confirmText={ADMIN_LAYOUT_TEXT.confirmLogoutConfirmText}
+        cancelText={ADMIN_LAYOUT_TEXT.confirmLogoutCancelText}
         variant="danger"
       />
     </div>

@@ -19,6 +19,17 @@ interface AdminSidebarProps {
   onOpenLogoutModal: () => void;
 }
 
+const ADMIN_SIDEBAR_TEXT = {
+  dashboardText: "Dashboard",
+  chatText: "Hội thoại",
+  knowledgeBaseText: "Kiến thức",
+  ragTestText: "RAG Test",
+  teamText: "Đội ngũ",
+  workspaceSettingsText: "Cấu hình Workspace",
+  profileText: "Hồ sơ cá nhân",
+  logoutText: "Đăng xuất",
+};
+
 interface NavItem {
   name: string;
   href: string;
@@ -35,43 +46,43 @@ export function AdminSidebar({
 
   const allNavigation: NavItem[] = [
     {
-      name: "Dashboard",
+      name: ADMIN_SIDEBAR_TEXT.dashboardText,
       href: "/dashboard",
       icon: LayoutDashboard,
       allowedRoles: ["owner", "admin"],
     },
     {
-      name: "Hội thoại",
+      name: ADMIN_SIDEBAR_TEXT.chatText,
       href: "/chat",
       icon: MessageSquare,
       allowedRoles: ["owner", "admin", "agent"],
     },
     {
-      name: "Kiến thức",
+      name: ADMIN_SIDEBAR_TEXT.knowledgeBaseText,
       href: "/knowledge-base",
       icon: FileText,
       allowedRoles: ["owner", "admin"],
     },
     {
-      name: "RAG Test",
+      name: ADMIN_SIDEBAR_TEXT.ragTestText,
       href: "/rag-test",
       icon: Sparkles,
       allowedRoles: ["owner", "admin"],
     },
     {
-      name: "Đội ngũ",
+      name: ADMIN_SIDEBAR_TEXT.teamText,
       href: "/team",
       icon: Users,
       allowedRoles: ["owner", "admin"],
     },
     {
-      name: "Cấu hình Workspace",
+      name: ADMIN_SIDEBAR_TEXT.workspaceSettingsText,
       href: "/workspace-settings",
       icon: Bot,
       allowedRoles: ["owner", "admin"],
     },
     {
-      name: "Hồ sơ cá nhân",
+      name: ADMIN_SIDEBAR_TEXT.profileText,
       href: "/profile",
       icon: LayoutDashboard,
       allowedRoles: ["owner", "admin", "agent"],
@@ -132,7 +143,7 @@ export function AdminSidebar({
           onClick={onOpenLogoutModal}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          Đăng xuất
+          {ADMIN_SIDEBAR_TEXT.logoutText}
         </Button>
       </div>
     </div>

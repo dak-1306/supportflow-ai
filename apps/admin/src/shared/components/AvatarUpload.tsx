@@ -7,6 +7,15 @@ interface AvatarUploadProps {
   onChange: (url: string) => void;
 }
 
+const AVATAR_UPLOAD_TEXT = {
+  labelText: "Ảnh đại diện",
+  uploadButtonText: "Tải ảnh mới",
+  uploadingText: "Đang tải...",
+  deleteButtonText: "Xóa ảnh",
+  acceptedFormatsText: "Chấp nhận PNG, JPG, WEBP (Tối đa 2MB).",
+  uploadErrorText: "Tải ảnh thất bại.",
+};
+
 export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadImageMutation = useUploadImageMutation();
@@ -25,7 +34,7 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
   return (
     <div className="space-y-1.5">
       <label className="block text-xs font-medium text-slate-700">
-        Ảnh đại diện
+        {AVATAR_UPLOAD_TEXT.labelText}
       </label>
 
       <div className="flex items-center gap-4">
@@ -65,7 +74,9 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
               className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
             >
               <Upload className="w-3.5 h-3.5" />
-              {uploadImageMutation.isPending ? "Đang tải..." : "Tải ảnh mới"}
+              {uploadImageMutation.isPending
+                ? AVATAR_UPLOAD_TEXT.uploadingText
+                : AVATAR_UPLOAD_TEXT.uploadButtonText}
             </button>
 
             {value && !uploadImageMutation.isPending && (
@@ -74,19 +85,21 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
                 onClick={() => onChange("")}
                 className="px-2.5 py-1.5 text-red-600 hover:bg-red-50 text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
               >
-                <X className="w-3.5 h-3.5" /> Xóa ảnh
+                <X className="w-3.5 h-3.5" />{" "}
+                {AVATAR_UPLOAD_TEXT.deleteButtonText}
               </button>
             )}
           </div>
           <p className="text-[11px] text-slate-400">
-            Chấp nhận PNG, JPG, WEBP (Tối đa 2MB).
+            {AVATAR_UPLOAD_TEXT.acceptedFormatsText}
           </p>
         </div>
       </div>
 
       {uploadImageMutation.isError && (
         <p className="text-xs text-red-500 font-medium">
-          {uploadImageMutation.error.message || "Tải ảnh thất bại."}
+          {uploadImageMutation.error.message ||
+            AVATAR_UPLOAD_TEXT.uploadErrorText}
         </p>
       )}
     </div>

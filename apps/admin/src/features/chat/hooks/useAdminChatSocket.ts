@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 import { useAuthStore } from "@/stores/auth.store";
+import { chatKeys } from "@/features/chat/hooks/useChatQueries";
 import {
   IMessage,
   ConversationStatus,
@@ -12,6 +13,11 @@ import {
 } from "@supportflow/shared-types";
 import { notificationSound } from "@supportflow/assets";
 import { adminSocket } from "@/features/chat/libs/adminSocket";
+
+interface MessagesData {
+  messages: IMessage[];
+  total: number;
+}
 
 export const useAdminChatSocket = () => {
   const queryClient = useQueryClient();
@@ -61,7 +67,7 @@ export const useAdminChatSocket = () => {
     };
   }, [activeConversationId, workspaceId]);
 
-  // 🟢 2. KHỞI TẠO TẤT CẢ LISTENERS
+  // 🟢 2. KHỞI TẠO LISTENERS
   useEffect(() => {
     const handleConnect = () => {
       if (workspaceId) {
@@ -74,11 +80,10 @@ export const useAdminChatSocket = () => {
       }
     };
 
-    // 📩 Tin nhắn mới trong Room đang mở
     const handleNewMessage = (
       rawMessage: IMessage & { conversationStatus?: ConversationStatus },
     ) => {
-      const msgId = rawMessage.id || (rawMessage as any)._id;
+      const msgId = rawMessage.id;
 
       if (msgId) {
         if (processedMessageIds.current.has(msgId)) return;
@@ -88,13 +93,13 @@ export const useAdminChatSocket = () => {
 
       const convIdStr = String(rawMessage.conversationId);
 
-      queryClient.setQueriesData(
-        { queryKey: ["messages", convIdStr] },
-        (oldData: any) => {
+      queryClient.setQueriesData<MessagesData>(
+        { queryKey: chatKeys.messages.list(convIdStr, 1) },
+        (oldData) => {
           if (!oldData) return { messages: [rawMessage], total: 1 };
           const existing = oldData.messages || [];
 
-          if (existing.some((m: any) => (m.id || m._id) === msgId)) {
+          if (existing.some((m) => m.id === msgId)) {
             return oldData;
           }
 
@@ -106,7 +111,7 @@ export const useAdminChatSocket = () => {
         },
       );
 
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: chatKeys.conversations.all });
 
       if (
         rawMessage.sender === MESSAGE_SENDER.CUSTOMER &&
@@ -116,7 +121,6 @@ export const useAdminChatSocket = () => {
       }
     };
 
-    // 📬 Tin nhắn từ Workspace Sidebar
     const handleWorkspaceMessage = (
       rawMessage: IMessage & { conversationStatus?: ConversationStatus },
     ) => {
@@ -125,7 +129,7 @@ export const useAdminChatSocket = () => {
         ? String(activeIdRef.current)
         : null;
 
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: chatKeys.conversations.all });
 
       if (
         rawMessage.sender === MESSAGE_SENDER.CUSTOMER &&
@@ -149,7 +153,6 @@ export const useAdminChatSocket = () => {
       }
     };
 
-    // 🔔 Thông báo khẩn từ AI (RAG Handoff)
     const handleAdminNotification = (data: {
       conversationId: string;
       type: string;
@@ -159,23 +162,21 @@ export const useAdminChatSocket = () => {
     }) => {
       playSound();
       addNotification(data);
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: chatKeys.conversations.all });
     };
 
-    // 🔄 Thay đổi Trạng thái Cuộc hội thoại
     const handleStatusChanged = (data: {
       conversationId: string;
       status: ConversationStatus;
       assignedAdminId?: string;
     }) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: chatKeys.conversations.all });
 
       if (String(data.conversationId) === String(activeIdRef.current)) {
         setActiveConversationStatus(data.status);
       }
     };
 
-    // ✍️ Kiểm tra Typing Indicator
     const handleTyping = (data: {
       conversationId: string;
       isTyping: boolean;
@@ -192,7 +193,6 @@ export const useAdminChatSocket = () => {
         setCustomerTyping(data.isTyping);
     };
 
-    // Đăng ký Event
     if (adminSocket.connected) handleConnect();
     adminSocket.on("connect", handleConnect);
     adminSocket.on(SOCKET_EVENTS.NEW_MESSAGE, handleNewMessage);

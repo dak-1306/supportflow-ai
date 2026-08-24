@@ -11,6 +11,11 @@ import {
 } from "@supportflow/ui/src/components/ui/dropdown-menu";
 import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 
+const NOTIFICATION_TEXT = {
+  notificationTitle: "Thông báo",
+  noNotificationText: "Không có thông báo mới",
+};
+
 export const NotificationBell: React.FC = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -45,7 +50,7 @@ export const NotificationBell: React.FC = () => {
       >
         <div className="flex items-center justify-between px-2 py-1.5">
           <span className="text-sm font-semibold text-foreground">
-            Thông báo
+            {NOTIFICATION_TEXT.notificationTitle}
           </span>
         </div>
         <DropdownMenuSeparator />
@@ -53,7 +58,7 @@ export const NotificationBell: React.FC = () => {
         <div className="max-h-[300px] overflow-y-auto space-y-1 my-1">
           {notifications.length === 0 ? (
             <div className="py-6 text-center text-xs text-muted-foreground">
-              Không có thông báo mới
+              {NOTIFICATION_TEXT.noNotificationText}
             </div>
           ) : (
             notifications.map((item, index) => (

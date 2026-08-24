@@ -1,7 +1,15 @@
 import { api } from "@/shared/services/client";
+import {
+  CONVERSATION_STATUS,
+  ConversationStatus,
+} from "@supportflow/shared-types";
 
 export const adminChatApi = {
-  getConversations: async (status = "OPEN", page = 1, limit = 20) => {
+  getConversations: async (
+    status: ConversationStatus = CONVERSATION_STATUS.AI,
+    page = 1,
+    limit = 20,
+  ) => {
     const response = await api.get(
       `/admin/conversations?status=${status}&page=${page}&limit=${limit}`,
     );
@@ -18,9 +26,7 @@ export const adminChatApi = {
   sendMessage: async (conversationId: string, message: string) => {
     const response = await api.post(
       `/admin/conversations/${conversationId}/messages`,
-      {
-        message,
-      },
+      { message },
     );
     return response.data.data;
   },
@@ -38,6 +44,7 @@ export const adminChatApi = {
     );
     return response.data.data;
   },
+
   enableAI: async (conversationId: string) => {
     const response = await api.patch(
       `/admin/conversations/${conversationId}/enable-ai`,

@@ -24,6 +24,12 @@ interface AdminHeaderProps {
   onOpenLogoutModal: () => void;
 }
 
+const ADMIN_HEADER_TEXT = {
+  profileText: "Hồ sơ cá nhân",
+  logoutText: "Đăng xuất",
+  systemText: "Hệ thống",
+};
+
 export function AdminHeader({
   isMobileOpen,
   setIsMobileOpen,
@@ -67,7 +73,9 @@ export function AdminHeader({
 
       {/* Breadcrumb / Page Title */}
       <div className="flex items-center gap-2 text-sm font-medium">
-        <span className="text-muted-foreground">Hệ thống</span>
+        <span className="text-muted-foreground">
+          {ADMIN_HEADER_TEXT.systemText}
+        </span>
         <span className="text-muted-foreground">/</span>
         <span className="text-foreground capitalize">
           {location.pathname.replace("/", "") || "Dashboard"}
@@ -107,14 +115,14 @@ export function AdminHeader({
               onClick={() => navigate("/profile")}
               className="cursor-pointer focus:bg-accent focus:text-accent-foreground flex items-center gap-2"
             >
-              Hồ sơ cá nhân
+              {ADMIN_HEADER_TEXT.profileText}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={onOpenLogoutModal}
               className="text-destructive focus:bg-destructive/5 cursor-pointer"
             >
-              Đăng xuất
+              {ADMIN_HEADER_TEXT.logoutText}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

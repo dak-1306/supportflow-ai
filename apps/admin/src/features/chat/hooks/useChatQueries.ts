@@ -4,9 +4,9 @@ import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 import {
   CONVERSATION_STATUS,
   ConversationStatus,
+  IMessage,
 } from "@supportflow/shared-types";
 
-// 🟢 1. QUERY KEY FACTORY TỐI ƯU HÓA CACHE & INVALIDATION
 export const chatKeys = {
   conversations: {
     all: ["conversations"] as const,
@@ -22,7 +22,12 @@ export const chatKeys = {
   },
 };
 
-// Hook lấy danh sách cuộc hội thoại
+interface MessagesData {
+  messages: IMessage[];
+  total: number;
+  status?: ConversationStatus;
+}
+
 export const useConversationsQuery = (
   status: ConversationStatus = CONVERSATION_STATUS.AI,
   page = 1,
@@ -36,7 +41,6 @@ export const useConversationsQuery = (
   });
 };
 
-// Hook lấy lịch sử tin nhắn
 export const useMessagesQuery = (
   conversationId: string | null,
   page = 1,
@@ -50,7 +54,6 @@ export const useMessagesQuery = (
   });
 };
 
-// Hook gửi tin nhắn
 export const useSendMessageMutation = (conversationId: string | null) => {
   const queryClient = useQueryClient();
   const setActiveConversationStatus = useAdminChatStore(
@@ -62,13 +65,12 @@ export const useSendMessageMutation = (conversationId: string | null) => {
       if (!conversationId) throw new Error("No active conversation ID");
       return adminChatApi.sendMessage(conversationId, msg);
     },
-    onSuccess: (newMessage) => {
+    onSuccess: (newMessage: IMessage) => {
       setActiveConversationStatus(CONVERSATION_STATUS.HUMAN);
 
-      // Cập nhật Cache cho tất cả Query khớp prefix cuộc hội thoại này
-      queryClient.setQueriesData(
-        { queryKey: chatKeys.messages.byConversation(conversationId) },
-        (oldData: any) => {
+      queryClient.setQueriesData<MessagesData>(
+        { queryKey: chatKeys.messages.list(conversationId, 1) },
+        (oldData) => {
           if (!oldData) {
             return {
               messages: [newMessage],
@@ -77,16 +79,14 @@ export const useSendMessageMutation = (conversationId: string | null) => {
             };
           }
 
-          const exists = (oldData.messages || []).some(
-            (m: any) => m.id === newMessage.id,
-          );
+          const exists = oldData.messages.some((m) => m.id === newMessage.id);
           if (exists) return oldData;
 
           return {
             ...oldData,
             status: CONVERSATION_STATUS.HUMAN,
-            messages: [...(oldData.messages || []), newMessage],
-            total: (oldData.total || 0) + 1,
+            messages: [...oldData.messages, newMessage],
+            total: oldData.total + 1,
           };
         },
       );
@@ -98,7 +98,6 @@ export const useSendMessageMutation = (conversationId: string | null) => {
   });
 };
 
-// Hook Tiếp quản hội thoại
 export const useTakeOverMutation = () => {
   const queryClient = useQueryClient();
   const setActiveConversationStatus = useAdminChatStore(
@@ -120,7 +119,6 @@ export const useTakeOverMutation = () => {
   });
 };
 
-// Hook Hoàn thành hội thoại
 export const useResolveMutation = () => {
   const queryClient = useQueryClient();
   const setActiveConversationStatus = useAdminChatStore(
@@ -146,7 +144,6 @@ export const useResolveMutation = () => {
   });
 };
 
-// Hook Bật AI Bot
 export const useEnableAIMutation = () => {
   const queryClient = useQueryClient();
   const setActiveConversationStatus = useAdminChatStore(

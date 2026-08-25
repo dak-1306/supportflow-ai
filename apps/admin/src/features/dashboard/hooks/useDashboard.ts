@@ -1,22 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  dashboardApi,
-  DashboardAnalyticsResponse,
-} from "@/features/dashboard/services/dashboard.api";
+import { dashboardApi } from "@/features/dashboard/services/dashboard.api";
+import { DashboardAnalyticsResponse } from "@/features/dashboard/types/types";
 import { useAuthStore } from "@/stores/auth.store";
 
+export const dashboardKeys = {
+  all: ["dashboard"] as const,
+  analytics: (workspaceId: string) =>
+    [...dashboardKeys.all, "analytics", workspaceId] as const,
+};
+
 export const useDashboard = () => {
-  const { user } = useAuthStore();
-  const workspaceId = user?.workspaceId || "";
+  const workspaceId = useAuthStore((state) => state.user?.workspaceId) || "";
 
   const analyticsQuery = useQuery<DashboardAnalyticsResponse, Error>({
-    queryKey: ["dashboard-analytics", workspaceId],
-    queryFn: () => {
-      if (!workspaceId) throw new Error("Không tìm thấy thông tin Workspace");
-      return dashboardApi.getAnalytics(workspaceId);
-    },
+    queryKey: dashboardKeys.analytics(workspaceId),
+    queryFn: () => dashboardApi.getAnalytics(workspaceId),
     enabled: !!workspaceId,
-    refetchInterval: 30000, // Tự động làm mới dữ liệu mỗi 30 giây (Realtime Polling)
+    refetchInterval: 30000,
   });
 
   return {

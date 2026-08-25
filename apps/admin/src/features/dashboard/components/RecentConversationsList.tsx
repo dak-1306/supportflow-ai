@@ -1,6 +1,9 @@
 import React from "react";
-import { ConversationStatus } from "@supportflow/shared-types";
-import { RecentConversationItem } from "@/features/dashboard/services/dashboard.api";
+import {
+  CONVERSATION_STATUS,
+  ConversationStatus,
+} from "@supportflow/shared-types";
+import { RecentConversationItem } from "@/features/dashboard/types/types";
 
 interface RecentConversationsListProps {
   conversations: RecentConversationItem[];
@@ -8,25 +11,25 @@ interface RecentConversationsListProps {
 
 const renderStatusBadge = (status: ConversationStatus) => {
   switch (status) {
-    case "AI":
+    case CONVERSATION_STATUS.AI:
       return (
         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
           AI
         </span>
       );
-    case "WAITING_ADMIN":
+    case CONVERSATION_STATUS.WAITING_ADMIN:
       return (
         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
           Waiting
         </span>
       );
-    case "HUMAN":
+    case CONVERSATION_STATUS.HUMAN:
       return (
         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
           Human
         </span>
       );
-    case "RESOLVED":
+    case CONVERSATION_STATUS.RESOLVED:
       return (
         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
           Resolved
@@ -53,7 +56,7 @@ export const RecentConversationsList: React.FC<
         ) : (
           conversations.map((item) => (
             <div
-              key={item._id}
+              key={item.id}
               className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors border border-gray-50"
             >
               <div className="truncate pr-2">

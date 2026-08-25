@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth.store";
 import Login from "@/features/auth/pages/Login";
 import ChatPage from "@/features/chat/pages/ChatPage";
-import KnowledgeBasePage from "@/features/knowledge-base/pages/kb-page";
+import { KnowledgeBasePage } from "@/features/knowledge-base/pages/kb-page";
 import RagTestPage from "@/features/rag/pages/RagTestPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { UserManagementPage } from "@/features/user/pages/UserManagementPage";

@@ -2,6 +2,11 @@
 
 export type DocumentType = "PDF" | "DOCX";
 export type DocumentStatus = "PROCESSING" | "READY" | "FAILED";
+export const DOCUMENT_STATUS = {
+  PROCESSING: "PROCESSING" as DocumentStatus,
+  READY: "READY" as DocumentStatus,
+  FAILED: "FAILED" as DocumentStatus,
+};
 
 // Interface đại diện cho Document Object (Dùng cho cả Frontend & Backend DTO)
 export interface IDocument {

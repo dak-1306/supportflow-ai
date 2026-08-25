@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
-import { DocumentModel, IDocumentModel } from "../models/document.model";
+import { BaseRepository } from "../../../shared/repositories/base.repository";
+import { DocumentModel } from "../models/document.model";
 import { DocumentChunkModel } from "../models/document-chunk.model";
 import { IDocument, IDocumentChunk } from "@supportflow/shared-types";
 
@@ -12,29 +13,16 @@ export type CreateChunkInput = {
   page?: number;
 };
 
-export class DocumentRepository {
-  async createDocument(data: Partial<IDocumentModel>): Promise<IDocument> {
-    const doc = await DocumentModel.create(data);
-    return doc.toJSON() as unknown as IDocument; // Dùng toJSON() để biến đổi _id -> id
+export class DocumentRepository extends BaseRepository<IDocument> {
+  constructor() {
+    super(DocumentModel);
   }
 
-  async updateDocument(
-    id: string | Types.ObjectId,
-    updateData: Partial<IDocumentModel>,
-  ): Promise<IDocument | null> {
-    const updated = await DocumentModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-    }).exec();
-
-    return updated ? (updated.toJSON() as unknown as IDocument) : null;
-  }
-
-  async findDocumentById(
-    id: string | Types.ObjectId,
-  ): Promise<IDocument | null> {
-    const doc = await DocumentModel.findById(id).exec();
-    return doc ? (doc.toJSON() as unknown as IDocument) : null;
-  }
+  // Tận dụng lại CRUD từ BaseRepository:
+  // - findById()
+  // - create()
+  // - update()
+  // - delete()
 
   async findDocumentsByWorkspace(
     workspaceId: string | Types.ObjectId,
@@ -51,30 +39,21 @@ export class DocumentRepository {
       DocumentModel.countDocuments(query).exec(),
     ]);
 
-    // Gọi toJSON() để kích hoạt transformToJSON (chuyển _id thành id, xóa __v)
     const docs = rawDocs.map((doc) => doc.toJSON() as unknown as IDocument);
-
     return { docs, total };
-  }
-
-  async deleteDocument(id: string | Types.ObjectId): Promise<IDocument | null> {
-    const deleted = await DocumentModel.findByIdAndDelete(id).exec();
-    return deleted ? (deleted.toJSON() as unknown as IDocument) : null;
   }
 
   async createChunks(
     chunksData: CreateChunkInput[],
   ): Promise<IDocumentChunk[]> {
     const result = await DocumentChunkModel.insertMany(chunksData);
-    return (result as any[]).map(
-      (chunk) => chunk.toJSON() as unknown as IDocumentChunk,
-    );
+    return result.map((chunk) => chunk.toJSON() as unknown as IDocumentChunk);
   }
 
   async deleteChunksByDocumentId(
     documentId: string | Types.ObjectId,
-  ): Promise<any> {
-    return await DocumentChunkModel.deleteMany({
+  ): Promise<void> {
+    await DocumentChunkModel.deleteMany({
       documentId: new Types.ObjectId(documentId.toString()),
     }).exec();
   }

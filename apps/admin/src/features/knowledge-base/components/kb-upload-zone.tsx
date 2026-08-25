@@ -1,117 +1,136 @@
-// src/features/knowledge-base/components/kb-upload-zone.tsx
-import * as React from "react";
-import { UploadCloud, FileText, Loader2 } from "lucide-react";
+import React, { useState, useRef, memo, DragEvent } from "react";
+import { UploadCloud, FileText, Loader2, FileCheck } from "lucide-react";
 import { Button } from "@supportflow/ui/src/components/ui/button";
+import { Badge } from "@supportflow/ui/src/components/ui/badge";
 import { toast } from "sonner";
+import { KB_CONFIG, KB_UI_TEXT } from "../constants/kb.constants";
+import { IDocument } from "@supportflow/shared-types";
 
 interface KbUploadZoneProps {
-  onUpload: (file: File) => Promise<any>;
+  onUpload: (file: File) => Promise<IDocument>;
   isUploading: boolean;
 }
 
-export function KbUploadZone({ onUpload, isUploading }: KbUploadZoneProps) {
-  const [isDragActive, setIsDragActive] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+export const KbUploadZone: React.FC<KbUploadZoneProps> = memo(
+  ({ onUpload, isUploading }) => {
+    const [isDragActive, setIsDragActive] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const file = files[0];
+    const validateAndUpload = async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      const file = files[0];
 
-    // Validate client-side dựa trên Design System Form/Rules
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    if (ext !== "pdf" && ext !== "docx") {
-      toast.error("Định dạng file không hợp lệ", {
-        description: "Chỉ hỗ trợ định dạng PDF và DOCX",
-      });
-      return;
-    }
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (!ext || !KB_CONFIG.ALLOWED_EXTENSIONS.includes(ext as any)) {
+        toast.error(KB_UI_TEXT.toast.invalidType, {
+          description: KB_UI_TEXT.toast.invalidTypeDesc,
+        });
+        return;
+      }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Kích thước file quá lớn", {
-        description: "Chỉ hỗ trợ file tối đa 10MB",
-      });
-      return;
-    }
+      if (file.size > KB_CONFIG.MAX_FILE_SIZE_BYTES) {
+        toast.error(KB_UI_TEXT.toast.fileTooLarge, {
+          description: KB_UI_TEXT.toast.fileTooLargeDesc,
+        });
+        return;
+      }
 
-    try {
       await onUpload(file);
-      toast.success("Tải lên thành công", {
-        description: "Tài liệu đã được tải lên và đang xử lý.",
-      });
-    } catch (error: any) {
-      toast.error("Lỗi tải lên tài liệu", {
-        description: error.message || "Không thể tải lên tài liệu.",
-      });
-    }
-  };
+    };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setIsDragActive(true);
-    } else if (e.type === "dragleave") {
+    const handleDrag = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.type === "dragenter" || e.type === "dragover") {
+        setIsDragActive(true);
+      } else if (e.type === "dragleave") {
+        setIsDragActive(false);
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
       setIsDragActive(false);
-    }
-  };
+      validateAndUpload(e.dataTransfer.files);
+    };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-    handleFiles(e.dataTransfer.files);
-  };
-
-  return (
-    <div
-      className={`relative rounded-xl border border-dashed p-6 text-center transition-colors ${
-        isDragActive
-          ? "border-primary bg-primary/5"
-          : "border-border bg-card hover:bg-muted/50"
-      }`}
-      onDragEnter={handleDrag}
-      onDragOver={handleDrag}
-      onDragLeave={handleDrag}
-      onDrop={handleDrop}
-    >
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        accept=".pdf,.docx"
-        onChange={(e) => handleFiles(e.target.files)}
-        disabled={isUploading}
-      />
-
-      <div className="flex flex-col items-center justify-center gap-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          {isUploading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          ) : (
-            <UploadCloud className="h-5 w-5" />
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-sm font-medium">
-            {isUploading ? "Đang xử lý tập tin..." : "Kéo thả tài liệu vào đây"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Hỗ trợ định dạng PDF, DOCX tối đa 10MB
-          </p>
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
+    return (
+      <div
+        className={`relative rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200 ${
+          isDragActive
+            ? "border-primary bg-primary/10 scale-[1.005] shadow-md"
+            : "border-border bg-card hover:bg-muted/40 hover:border-muted-foreground/30"
+        } ${isUploading ? "pointer-events-none opacity-80" : "cursor-pointer"}`}
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+        onClick={() => !isUploading && fileInputRef.current?.click()}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.docx"
+          onChange={(e) => validateAndUpload(e.target.files)}
           disabled={isUploading}
-          onClick={() => fileInputRef.current?.click()}
-          className="rounded-md"
-        >
-          <FileText className="mr-2 h-4 w-4" />
-          Chọn tệp tin
-        </Button>
+        />
+
+        <div className="flex flex-col items-center justify-center gap-3">
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-full transition-transform duration-200 ${
+              isDragActive
+                ? "bg-primary text-primary-foreground scale-110"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {isUploading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            ) : isDragActive ? (
+              <FileCheck className="h-6 w-6 animate-bounce" />
+            ) : (
+              <UploadCloud className="h-6 w-6" />
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-base font-semibold text-foreground">
+              {isUploading
+                ? KB_UI_TEXT.upload.uploadingTitle
+                : KB_UI_TEXT.upload.idleTitle}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {KB_UI_TEXT.upload.subtitle}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            {KB_UI_TEXT.upload.supportedFormats.map((fmt) => (
+              <Badge
+                key={fmt}
+                variant="outline"
+                className="text-[10px] uppercase font-mono px-2 py-0.5"
+              >
+                {fmt}
+              </Badge>
+            ))}
+          </div>
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={isUploading}
+            className="mt-2 rounded-lg"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            {KB_UI_TEXT.upload.selectButton}
+          </Button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  },
+);
+
+KbUploadZone.displayName = "KbUploadZone";

@@ -2,11 +2,10 @@ import { Schema, model, Document as MongooseDocument, Types } from "mongoose";
 import {
   IDocument as SharedIDocument,
   DocumentType,
-  DocumentStatus,
+  DOCUMENT_STATUS,
 } from "@supportflow/shared-types";
 import { transformToJSON } from "../../../shared/utils/mongoose-preset";
 
-// Kế thừa từ Shared Types nhưng đổi type ObjectId cho Mongoose
 export interface IDocumentModel
   extends
     Omit<
@@ -37,8 +36,8 @@ const documentSchema = new Schema<IDocumentModel>(
     status: {
       type: String,
       required: true,
-      enum: ["PROCESSING", "READY", "FAILED"] as DocumentStatus[],
-      default: "PROCESSING",
+      enum: Object.values(DOCUMENT_STATUS),
+      default: DOCUMENT_STATUS.PROCESSING,
     },
     chunkCount: { type: Number, default: 0 },
     uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
@@ -48,5 +47,8 @@ const documentSchema = new Schema<IDocumentModel>(
     toJSON: transformToJSON,
   },
 );
+
+// ✅ Tối ưu truy vấn danh sách document theo workspace + sort createdAt
+documentSchema.index({ workspaceId: 1, createdAt: -1 });
 
 export const DocumentModel = model<IDocumentModel>("Document", documentSchema);

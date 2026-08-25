@@ -38,7 +38,8 @@ const documentChunkSchema = new Schema<IDocumentChunkModel>(
   },
 );
 
-documentChunkSchema.index({ workspaceId: 1, documentId: 1 });
+// ✅ Tối ưu cho lệnh deleteMany và tìm kiếm chunk theo documentId
+documentChunkSchema.index({ documentId: 1, chunkIndex: 1 });
 
 export const DocumentChunkModel = model<IDocumentChunkModel>(
   "DocumentChunk",

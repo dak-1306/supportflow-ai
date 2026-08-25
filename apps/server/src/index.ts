@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { getQdrantClient } from "@/shared/config/qdrant.config";
 
 import authRoutes from "@/modules/auth/routes/auth.route";
 import chatRouter from "@/modules/chat/routes/chat.routes";
@@ -58,11 +59,30 @@ app.get("/api/v1/health", healthCheckHandler);
 // Global Error Handler
 app.use(errorHandler);
 
+// 4. Cơ chế Keep-Alive chống ngủ cho Qdrant Cloud Free Tier
+const startQdrantKeepAlive = () => {
+  const TEN_MINUTES_MS = 10 * 60 * 1000;
+
+  setInterval(async () => {
+    try {
+      const qdrantClient = getQdrantClient();
+      await qdrantClient.getCollections();
+      console.log("[Qdrant Keep-Alive] 🟢 Ping Qdrant Cloud thành công.");
+    } catch (error: any) {
+      console.warn(
+        "[Qdrant Keep-Alive] ⚠️ Ping Qdrant Cloud thất bại:",
+        error?.message || error,
+      );
+    }
+  }, TEN_MINUTES_MS);
+};
+
 // 4. Khởi động Server
 const bootstrap = async () => {
   try {
     await connectDatabase();
     httpServer.listen(PORT, () => {
+      startQdrantKeepAlive(); // Bắt đầu cơ chế Keep-Alive
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
   } catch (error) {

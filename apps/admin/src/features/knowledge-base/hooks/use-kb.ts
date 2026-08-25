@@ -1,49 +1,69 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { kbApi } from "@/features/knowledge-base/services/kb.api";
-import { useAuthStore } from "@/stores/auth.store"; // Đường dẫn tới authStore của bạn
+import { useAuthStore } from "@/stores/auth.store";
+import { KB_CONFIG, KB_UI_TEXT } from "../constants/kb.constants";
+import { DOCUMENT_STATUS } from "@supportflow/shared-types";
+import { toast } from "sonner";
+
+export const kbKeys = {
+  all: ["knowledge-base"] as const,
+  lists: (workspaceId: string) => [...kbKeys.all, workspaceId] as const,
+  list: (workspaceId: string, page: number, limit: number) =>
+    [...kbKeys.lists(workspaceId), { page, limit }] as const,
+};
 
 export const useKb = (page: number = 1, limit: number = 10) => {
   const queryClient = useQueryClient();
-  const { user } = useAuthStore();
-  const workspaceId = user?.workspaceId || "";
+  const workspaceId = useAuthStore((state) => state.user?.workspaceId) || "";
 
-  // Query: Lấy danh sách tài liệu (Chỉ chạy khi có workspaceId)
   const documentsQuery = useQuery({
-    queryKey: ["knowledge-base", workspaceId, page, limit],
+    queryKey: kbKeys.list(workspaceId, page, limit),
     queryFn: () => kbApi.getDocuments(workspaceId, page, limit),
     enabled: !!workspaceId,
     refetchInterval: (query) => {
-      // Tự động polling làm mới danh sách mỗi 4 giây nếu phát hiện có file đang PROCESSING
       const hasProcessingFile = query.state.data?.docs.some(
-        (doc) => doc.status === "PROCESSING",
+        (doc) => doc.status === DOCUMENT_STATUS.PROCESSING,
       );
-      return hasProcessingFile ? 4000 : false;
+      return hasProcessingFile ? KB_CONFIG.POLLING_INTERVAL_MS : false;
     },
   });
 
-  // Mutation: Tải lên tài liệu
   const uploadMutation = useMutation({
     mutationFn: (file: File) => {
       if (!workspaceId) throw new Error("Không tìm thấy thông tin Workspace");
       return kbApi.uploadDocument(workspaceId, file);
     },
     onSuccess: () => {
-      // Invalidate cache để tự động reload lại danh sách file
+      toast.success(KB_UI_TEXT.toast.uploadSuccess, {
+        description: KB_UI_TEXT.toast.uploadSuccessDesc,
+      });
       queryClient.invalidateQueries({
-        queryKey: ["knowledge-base", workspaceId],
+        queryKey: kbKeys.lists(workspaceId),
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Lỗi tải lên tài liệu", {
+        description: error.message || "Không thể tải lên tài liệu.",
       });
     },
   });
 
-  // Mutation: Xóa tài liệu
   const deleteMutation = useMutation({
     mutationFn: (documentId: string) => {
       if (!workspaceId) throw new Error("Không tìm thấy thông tin Workspace");
       return kbApi.deleteDocument(workspaceId, documentId);
     },
     onSuccess: () => {
+      toast.success(KB_UI_TEXT.toast.deleteSuccess, {
+        description: KB_UI_TEXT.toast.deleteSuccessDesc,
+      });
       queryClient.invalidateQueries({
-        queryKey: ["knowledge-base", workspaceId],
+        queryKey: kbKeys.lists(workspaceId),
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Lỗi xóa tài liệu", {
+        description: error.message || "Không thể xóa tài liệu.",
       });
     },
   });

@@ -4,7 +4,11 @@ import {
   documentRepository,
   CreateChunkInput,
 } from "../repositories/document.repository";
-import { IDocument } from "@supportflow/shared-types";
+import {
+  IDocument,
+  DOCUMENT_STATUS,
+  DocumentType,
+} from "@supportflow/shared-types";
 import { DocumentExtractor } from "../utils/document-extractor";
 import {
   getGoogleAI,
@@ -18,8 +22,23 @@ import {
 } from "@/shared/config/qdrant.config";
 import { AppError } from "@/shared/utils/app-error";
 
+// 1. Khai báo các Hằng số (Constants) & Configuration nội bộ
+const EMBEDDING_BATCH_SIZE = 5;
+const QDRANT_PAYLOAD_KEYS = {
+  WORKSPACE_ID: "workspaceId",
+  DOCUMENT_ID: "documentId",
+  CONTENT: "content",
+} as const;
+
 export class KnowledgeBaseService {
-  private async initQdrantCollection(): Promise<void> {
+  private isQdrantInitialized = false;
+
+  /**
+   * Đảm bảo Collection và Index trên Qdrant được tạo (Chỉ khởi tạo 1 lần duy nhất)
+   */
+  private async ensureQdrantCollection(): Promise<void> {
+    if (this.isQdrantInitialized) return;
+
     try {
       const qdrantClient = getQdrantClient();
       const collections = await qdrantClient.getCollections();
@@ -56,19 +75,21 @@ export class KnowledgeBaseService {
         }
       }
 
-      // Tạo Payload Index cho workspaceId và documentId để tối ưu truy vấn/xóa
+      // Tạo Index cho các trường lọc dữ liệu
       await Promise.allSettled([
         qdrantClient.createPayloadIndex(QDRANT_CONFIG.COLLECTION_NAME, {
-          field_name: "workspaceId",
+          field_name: QDRANT_PAYLOAD_KEYS.WORKSPACE_ID,
           field_schema: "keyword",
           wait: true,
         }),
         qdrantClient.createPayloadIndex(QDRANT_CONFIG.COLLECTION_NAME, {
-          field_name: "documentId",
+          field_name: QDRANT_PAYLOAD_KEYS.DOCUMENT_ID,
           field_schema: "keyword",
           wait: true,
         }),
       ]);
+
+      this.isQdrantInitialized = true;
     } catch (error: any) {
       if (error instanceof AppError) throw error;
       throw new AppError(`Không thể khởi tạo Qdrant: ${error.message}`, 500);
@@ -81,22 +102,22 @@ export class KnowledgeBaseService {
     userId?: string,
   ): Promise<IDocument> {
     const fileExtension = file.originalname.split(".").pop()?.toUpperCase();
-    const type = fileExtension === "DOCX" ? "DOCX" : "PDF";
+    const type: DocumentType = fileExtension === "DOCX" ? "DOCX" : "PDF";
 
-    const document = await documentRepository.createDocument({
+    const document = await documentRepository.create({
       workspaceId: new Types.ObjectId(workspaceId),
       name: file.originalname,
       type,
       size: file.size,
-      status: "PROCESSING",
+      status: DOCUMENT_STATUS.PROCESSING,
       uploadedBy: userId ? new Types.ObjectId(userId) : undefined,
     });
 
     this.processDocumentBackground(document.id.toString(), file.buffer).catch(
       async (err) => {
         console.error(`Lỗi xử lý tài liệu chạy ngầm ${document.id}:`, err);
-        await documentRepository.updateDocument(document.id.toString(), {
-          status: "FAILED",
+        await documentRepository.update(document.id.toString(), {
+          status: DOCUMENT_STATUS.FAILED,
         });
       },
     );
@@ -108,18 +129,18 @@ export class KnowledgeBaseService {
     documentId: string,
     fileBuffer: Buffer,
   ): Promise<void> {
-    const document = await documentRepository.findDocumentById(documentId);
+    const document = await documentRepository.findById(documentId);
     if (
       !document ||
-      document.status === "READY" ||
-      document.status === "FAILED"
+      document.status === DOCUMENT_STATUS.READY ||
+      document.status === DOCUMENT_STATUS.FAILED
     )
       return;
 
     try {
       validateAiConfig();
       validateQdrantConfig();
-      await this.initQdrantCollection();
+      await this.ensureQdrantCollection();
 
       const fullText = await DocumentExtractor.extractText(
         fileBuffer,
@@ -132,8 +153,6 @@ export class KnowledgeBaseService {
       }
 
       const clientAI = getGoogleAI();
-
-      const BATCH_SIZE = 5;
       const processedChunks: Array<{
         vectorId: string;
         content: string;
@@ -141,13 +160,14 @@ export class KnowledgeBaseService {
         index: number;
       }> = [];
 
-      for (let i = 0; i < rawChunks.length; i += BATCH_SIZE) {
-        const chunkBatch = rawChunks.slice(i, i + BATCH_SIZE);
+      // Chia nhỏ batch embedding
+      for (let i = 0; i < rawChunks.length; i += EMBEDDING_BATCH_SIZE) {
+        const chunkBatch = rawChunks.slice(i, i + EMBEDDING_BATCH_SIZE);
         const batchResults = await Promise.all(
           chunkBatch.map(async (content, batchIndex) => {
             const index = i + batchIndex;
             const embeddingResponse = await clientAI.models.embedContent({
-              model: AI_MODELS.EMBEDDING, // Sử dụng model từ AI_MODELS
+              model: AI_MODELS.EMBEDDING,
               contents: content,
             });
 
@@ -176,16 +196,16 @@ export class KnowledgeBaseService {
           chunkIndex: chunk.index,
           content: chunk.content,
           vectorId: chunk.vectorId,
-          page: 1,
+          page: 1, // TODO: Cập nhật DocumentExtractor để phân trang chính xác nếu có
         });
 
         qdrantPoints.push({
           id: chunk.vectorId,
           vector: chunk.vector,
           payload: {
-            documentId: documentId,
-            workspaceId: document.workspaceId.toString(),
-            content: chunk.content,
+            [QDRANT_PAYLOAD_KEYS.DOCUMENT_ID]: documentId,
+            [QDRANT_PAYLOAD_KEYS.WORKSPACE_ID]: document.workspaceId.toString(),
+            [QDRANT_PAYLOAD_KEYS.CONTENT]: chunk.content,
           },
         });
       }
@@ -202,12 +222,14 @@ export class KnowledgeBaseService {
         }),
       ]);
 
-      await documentRepository.updateDocument(documentId, {
-        status: "READY",
+      await documentRepository.update(documentId, {
+        status: DOCUMENT_STATUS.READY,
         chunkCount: rawChunks.length,
       });
     } catch (error) {
-      await documentRepository.updateDocument(documentId, { status: "FAILED" });
+      await documentRepository.update(documentId, {
+        status: DOCUMENT_STATUS.FAILED,
+      });
       throw error;
     }
   }
@@ -228,7 +250,7 @@ export class KnowledgeBaseService {
   }
 
   async deleteDocument(workspaceId: string, documentId: string): Promise<void> {
-    const document = await documentRepository.findDocumentById(documentId);
+    const document = await documentRepository.findById(documentId);
     if (!document || document.workspaceId.toString() !== workspaceId) {
       throw new AppError(
         "Tài liệu không tồn tại hoặc bạn không có quyền xóa",
@@ -237,11 +259,16 @@ export class KnowledgeBaseService {
     }
 
     try {
-      await this.initQdrantCollection();
+      await this.ensureQdrantCollection();
       const qdrantClient = getQdrantClient();
       await qdrantClient.delete(QDRANT_CONFIG.COLLECTION_NAME, {
         filter: {
-          must: [{ key: "documentId", match: { value: documentId } }],
+          must: [
+            {
+              key: QDRANT_PAYLOAD_KEYS.DOCUMENT_ID,
+              match: { value: documentId },
+            },
+          ],
         },
       });
     } catch (error: any) {
@@ -253,7 +280,7 @@ export class KnowledgeBaseService {
 
     await Promise.all([
       documentRepository.deleteChunksByDocumentId(documentId),
-      documentRepository.deleteDocument(documentId),
+      documentRepository.delete(documentId),
     ]);
   }
 }

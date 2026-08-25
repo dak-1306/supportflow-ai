@@ -47,13 +47,12 @@ export class AuthService {
       dto.workspaceName,
     );
 
-    // 3. Hash mật khẩu và tạo User với vai trò OWNER
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    // 3. Tạo User với vai trò OWNER (Để Mongoose pre('save') tự động hash dto.password)
     const newOwnerDoc = await this.userRepository.create({
       name: dto.fullName,
       email: dto.email.toLowerCase(),
-      password: hashedPassword,
-      role: "owner", // Mặc định là Owner khi đăng ký
+      password: dto.password, // ✅ Truyền mật khẩu thô, không dùng bcrypt.hash ở đây
+      role: "owner",
       workspaceId: workspace.id,
       status: "active",
     });

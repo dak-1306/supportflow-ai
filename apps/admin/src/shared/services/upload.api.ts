@@ -12,11 +12,9 @@ export const uploadApi = {
     const formData = new FormData();
     formData.append("file", file);
 
-    console.log("Uploading file to server:", file);
-
     const response = await api.post("/uploads/image", formData, {
       headers: {
-        "Content-Type": "multipart/form-data",
+        "Content-Type": undefined,
       },
     });
 

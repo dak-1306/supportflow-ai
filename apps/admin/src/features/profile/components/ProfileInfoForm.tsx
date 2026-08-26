@@ -107,7 +107,7 @@ export const ProfileInfoForm: React.FC = () => {
           )}
         />
 
-        <Button disabled={updateProfileMutation.isPending}>
+        <Button type="submit" disabled={updateProfileMutation.isPending}>
           {updateProfileMutation.isPending
             ? PROFILE_INFO_TEXTS.submitButtonLoading
             : PROFILE_INFO_TEXTS.submitButton}

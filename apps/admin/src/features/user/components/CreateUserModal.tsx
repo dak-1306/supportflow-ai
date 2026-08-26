@@ -110,97 +110,96 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           <DialogTitle>{CREATE_USER_TEXTS.title}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-          {errors.root && (
-            <FormAlert type="error" message={getErrorMessage(errors.root)} />
-          )}
-
-          <div className="space-y-1.5">
-            <Label htmlFor="name">{CREATE_USER_TEXTS.labels.name}</Label>
-            <Input
-              id="name"
-              type="text"
-              disabled={isLoading}
-              placeholder={CREATE_USER_TEXTS.placeholders.name}
-              {...register("name")}
-            />
-            {errors.name && (
-              <p className="text-xs text-red-500">
-                {getErrorMessage(errors.name)}
-              </p>
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
+          <div className="space-y-4 pb-4">
+            {errors.root && (
+              <FormAlert type="error" message={getErrorMessage(errors.root)} />
             )}
-          </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="email">{CREATE_USER_TEXTS.labels.email}</Label>
-            <Input
-              id="email"
-              type="email"
-              disabled={isLoading}
-              placeholder={CREATE_USER_TEXTS.placeholders.email}
-              {...register("email")}
-            />
-            {errors.email && (
-              <p className="text-xs text-red-500">
-                {getErrorMessage(errors.email)}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="password">
-              {CREATE_USER_TEXTS.labels.password}
-            </Label>
-            <PasswordField
-              id="password"
-              disabled={isLoading}
-              placeholder={CREATE_USER_TEXTS.placeholders.password}
-              {...register("password")}
-            />
-            {errors.password && (
-              <p className="text-xs text-red-500">
-                {getErrorMessage(errors.password)}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="role">{CREATE_USER_TEXTS.labels.role}</Label>
-            <Controller
-              name="role"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  disabled={isLoading}
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
-                  <SelectTrigger id="role">
-                    <SelectValue
-                      placeholder={CREATE_USER_TEXTS.placeholders.selectRole}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="agent">
-                      {CREATE_USER_TEXTS.roles.agent}
-                    </SelectItem>
-                    {currentUserRole === "owner" && (
-                      <SelectItem value="admin">
-                        {CREATE_USER_TEXTS.roles.admin}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">{CREATE_USER_TEXTS.labels.name}</Label>
+              <Input
+                id="name"
+                type="text"
+                disabled={isLoading}
+                placeholder={CREATE_USER_TEXTS.placeholders.name}
+                {...register("name")}
+              />
+              {errors.name && (
+                <p className="text-xs text-red-500">
+                  {getErrorMessage(errors.name)}
+                </p>
               )}
-            />
-            {errors.role && (
-              <p className="text-xs text-red-500">
-                {getErrorMessage(errors.role)}
-              </p>
-            )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="email">{CREATE_USER_TEXTS.labels.email}</Label>
+              <Input
+                id="email"
+                type="email"
+                disabled={isLoading}
+                placeholder={CREATE_USER_TEXTS.placeholders.email}
+                {...register("email")}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-500">
+                  {getErrorMessage(errors.email)}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <PasswordField
+                id="password"
+                disabled={isLoading}
+                placeholder={CREATE_USER_TEXTS.placeholders.password}
+                {...register("password")}
+              />
+              {errors.password && (
+                <p className="text-xs text-red-500">
+                  {getErrorMessage(errors.password)}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="role">{CREATE_USER_TEXTS.labels.role}</Label>
+              <Controller
+                name="role"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    disabled={isLoading}
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <SelectTrigger id="role">
+                      <SelectValue
+                        placeholder={CREATE_USER_TEXTS.placeholders.selectRole}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="agent">
+                        {CREATE_USER_TEXTS.roles.agent}
+                      </SelectItem>
+                      {currentUserRole === "owner" && (
+                        <SelectItem value="admin">
+                          {CREATE_USER_TEXTS.roles.admin}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.role && (
+                <p className="text-xs text-red-500">
+                  {getErrorMessage(errors.role)}
+                </p>
+              )}
+            </div>
           </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"

@@ -8,17 +8,11 @@ import {
   FileCode,
 } from "lucide-react";
 import { IDocument, DOCUMENT_STATUS } from "@supportflow/shared-types";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@supportflow/ui/src/components/ui/table";
+import { TableCell, TableRow } from "@supportflow/ui/src/components/ui/table";
 import { Badge } from "@supportflow/ui/src/components/ui/badge";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { ConfirmModal } from "@/shared/components/ConfirmModal";
+import { DataTableShell, ColumnHeader } from "@/shared/components/DataTableShell";
 import { KB_UI_TEXT } from "../constants/kb.constants";
 
 interface KbDocumentTableProps {
@@ -27,6 +21,15 @@ interface KbDocumentTableProps {
   onDelete: (id: string) => Promise<void>;
   isDeleting: boolean;
 }
+
+const COLUMNS: ColumnHeader[] = [
+  { key: "name", label: KB_UI_TEXT.table.cols.name, className: "w-[35%] font-semibold" },
+  { key: "type", label: KB_UI_TEXT.table.cols.type, className: "font-semibold" },
+  { key: "size", label: KB_UI_TEXT.table.cols.size, className: "font-semibold" },
+  { key: "chunks", label: KB_UI_TEXT.table.cols.chunks, className: "font-semibold" },
+  { key: "status", label: KB_UI_TEXT.table.cols.status, className: "font-semibold" },
+  { key: "actions", label: KB_UI_TEXT.table.cols.actions, className: "w-[80px] text-right font-semibold" },
+];
 
 const formatBytes = (bytes: number, decimals = 2): string => {
   if (!bytes) return "0 Bytes";
@@ -47,11 +50,7 @@ const renderFileTypeBadge = (type: string) => {
           : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900"
       }`}
     >
-      {isPdf ? (
-        <FileText className="h-3.5 w-3.5" />
-      ) : (
-        <FileCode className="h-3.5 w-3.5" />
-      )}
+      {isPdf ? <FileText className="h-3.5 w-3.5" /> : <FileCode className="h-3.5 w-3.5" />}
       {type.toUpperCase()}
     </span>
   );
@@ -110,6 +109,20 @@ const TableSkeleton = () => (
   </div>
 );
 
+const EmptyKbState = () => (
+  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-12 text-center">
+    <div className="p-3 bg-muted rounded-full mb-3 text-muted-foreground">
+      <FileText className="h-6 w-6" />
+    </div>
+    <p className="text-base font-semibold text-foreground">
+      {KB_UI_TEXT.table.emptyTitle}
+    </p>
+    <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+      {KB_UI_TEXT.table.emptySubtitle}
+    </p>
+  </div>
+);
+
 export const KbDocumentTable: React.FC<KbDocumentTableProps> = memo(
   ({ documents, isLoading, onDelete, isDeleting }) => {
     const [selectedDocToDelete, setSelectedDocToDelete] =
@@ -124,96 +137,60 @@ export const KbDocumentTable: React.FC<KbDocumentTableProps> = memo(
       }
     };
 
-    if (isLoading) return <TableSkeleton />;
-
-    if (documents.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-12 text-center">
-          <div className="p-3 bg-muted rounded-full mb-3 text-muted-foreground">
-            <FileText className="h-6 w-6" />
-          </div>
-          <p className="text-base font-semibold text-foreground">
-            {KB_UI_TEXT.table.emptyTitle}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-            {KB_UI_TEXT.table.emptySubtitle}
-          </p>
-        </div>
-      );
-    }
-
     return (
-      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <Table>
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              <TableHead className="w-[35%] font-semibold">
-                {KB_UI_TEXT.table.cols.name}
-              </TableHead>
-              <TableHead className="font-semibold">
-                {KB_UI_TEXT.table.cols.type}
-              </TableHead>
-              <TableHead className="font-semibold">
-                {KB_UI_TEXT.table.cols.size}
-              </TableHead>
-              <TableHead className="font-semibold">
-                {KB_UI_TEXT.table.cols.chunks}
-              </TableHead>
-              <TableHead className="font-semibold">
-                {KB_UI_TEXT.table.cols.status}
-              </TableHead>
-              <TableHead className="w-[80px] text-right font-semibold">
-                {KB_UI_TEXT.table.cols.actions}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents.map((doc) => {
-              const isThisDocDeleting =
-                isDeleting && selectedDocToDelete?.id === doc.id;
+      <>
+        <DataTableShell
+          columns={COLUMNS}
+          isLoading={isLoading}
+          isEmpty={documents.length === 0}
+          loadingSkeleton={<TableSkeleton />}
+          emptyState={<EmptyKbState />}
+        >
+          {documents.map((doc) => {
+            const isThisDocDeleting =
+              isDeleting && selectedDocToDelete?.id === doc.id;
 
-              return (
-                <TableRow
-                  key={doc.id}
-                  className="hover:bg-muted/30 transition-colors"
+            return (
+              <TableRow
+                key={doc.id}
+                className="hover:bg-muted/30 transition-colors"
+              >
+                <TableCell
+                  className="font-medium max-w-[260px] truncate"
+                  title={doc.name}
                 >
-                  <TableCell
-                    className="font-medium max-w-[260px] truncate"
-                    title={doc.name}
+                  {doc.name}
+                </TableCell>
+                <TableCell>{renderFileTypeBadge(doc.type)}</TableCell>
+                <TableCell className="text-muted-foreground text-sm font-mono">
+                  {formatBytes(doc.size)}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-sm font-mono">
+                  {doc.status === DOCUMENT_STATUS.PROCESSING
+                    ? "---"
+                    : doc.chunkCount}
+                </TableCell>
+                <TableCell>{renderStatus(doc.status)}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors rounded-lg"
+                    onClick={() => setSelectedDocToDelete(doc)}
+                    disabled={isThisDocDeleting}
+                    aria-label="Xóa tài liệu"
                   >
-                    {doc.name}
-                  </TableCell>
-                  <TableCell>{renderFileTypeBadge(doc.type)}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm font-mono">
-                    {formatBytes(doc.size)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm font-mono">
-                    {doc.status === DOCUMENT_STATUS.PROCESSING
-                      ? "---"
-                      : doc.chunkCount}
-                  </TableCell>
-                  <TableCell>{renderStatus(doc.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors rounded-lg"
-                      onClick={() => setSelectedDocToDelete(doc)}
-                      disabled={isThisDocDeleting}
-                      aria-label="Xóa tài liệu"
-                    >
-                      {isThisDocDeleting ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-destructive" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    {isThisDocDeleting ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </DataTableShell>
 
         <ConfirmModal
           isOpen={!!selectedDocToDelete}
@@ -225,9 +202,7 @@ export const KbDocumentTable: React.FC<KbDocumentTableProps> = memo(
           description={
             <div className="space-y-3 pt-2">
               <div className="p-3 bg-muted/60 rounded-lg border border-border">
-                <p className="text-xs text-muted-foreground">
-                  Tài liệu đã chọn:
-                </p>
+                <p className="text-xs text-muted-foreground">Tài liệu đã chọn:</p>
                 <p className="text-sm font-semibold text-foreground truncate mt-0.5">
                   {selectedDocToDelete?.name}
                 </p>
@@ -239,7 +214,7 @@ export const KbDocumentTable: React.FC<KbDocumentTableProps> = memo(
           }
           onConfirm={handleConfirmDelete}
         />
-      </div>
+      </>
     );
   },
 );

@@ -1,5 +1,14 @@
-// src/shared/components/ConfirmModal.tsx
 import React from "react";
+import { Loader2 } from "lucide-react";
+import { Button } from "@supportflow/ui/src/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@supportflow/ui/src/components/ui/dialog";
 
 export interface ConfirmModalProps {
   isOpen: boolean;
@@ -10,8 +19,20 @@ export interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   isLoading?: boolean;
-  variant?: "danger" | "primary" | "warning"; // Chọn giao diện theo mức độ nguy hiểm
+  variant?: "danger" | "primary" | "warning";
 }
+
+const mapVariantToButton = (variant: ConfirmModalProps["variant"]) => {
+  switch (variant) {
+    case "danger":
+      return "destructive";
+    case "warning":
+      return "default"; // Có thể tùy biến thêm class nếu cần màu amber
+    case "primary":
+    default:
+      return "default";
+  }
+};
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
@@ -24,53 +45,41 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isLoading = false,
   variant = "primary",
 }) => {
-  if (!isOpen) return null;
-
-  // Cấu hình style nút theo variant
-  const getButtonStyles = () => {
-    switch (variant) {
-      case "danger":
-        return "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500";
-      case "warning":
-        return "bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500";
-      case "primary":
-      default:
-        return "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500";
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      {/* Click backdrop để đóng modal */}
-      <div className="fixed inset-0" onClick={onClose} />
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => !open && !isLoading && onClose()}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            <div className="pt-1 text-sm text-muted-foreground">
+              {description}
+            </div>
+          </DialogDescription>
+        </DialogHeader>
 
-      <div className="relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-          {title}
-        </h3>
-        <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          {description}
-        </div>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
             disabled={isLoading}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             {cancelText}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={mapVariantToButton(variant)}
             onClick={onConfirm}
             disabled={isLoading}
-            className={`rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 transition-colors ${getButtonStyles()}`}
           >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isLoading ? "Đang xử lý..." : confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

@@ -1,19 +1,22 @@
 // src/shared/hooks/useUpload.ts
 import { useMutation } from "@tanstack/react-query";
 import { uploadApi, UploadImageResponse } from "@/shared/services/upload.api";
-
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+import { IMAGE_UPLOAD_CONFIG } from "@/shared/constants/upload.constants";
 
 export const useUploadImageMutation = () => {
   return useMutation<UploadImageResponse, Error, File>({
     mutationFn: async (file: File) => {
-      // 🟢 Validate Client-side trước khi tốn Băng thông gửi API
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        throw new Error("Chỉ chấp nhận định dạng PNG, JPG, WEBP");
+      // Validate Client-side sử dụng constant từ shared
+      const isValidType = (
+        IMAGE_UPLOAD_CONFIG.ACCEPTED_TYPES as readonly string[]
+      ).includes(file.type);
+
+      if (!isValidType) {
+        throw new Error(IMAGE_UPLOAD_CONFIG.ERROR_MESSAGES.INVALID_TYPE);
       }
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error("Kích thước file không được vượt quá 2MB.");
+
+      if (file.size > IMAGE_UPLOAD_CONFIG.MAX_FILE_SIZE_BYTES) {
+        throw new Error(IMAGE_UPLOAD_CONFIG.ERROR_MESSAGES.FILE_TOO_LARGE);
       }
 
       return uploadApi.uploadImage(file);

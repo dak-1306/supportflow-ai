@@ -2,15 +2,12 @@ import React, { useState } from "react";
 import { IUser, UserRole } from "@supportflow/shared-types";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { Badge } from "@supportflow/ui/src/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@supportflow/ui/src/components/ui/table";
+import { TableCell, TableRow } from "@supportflow/ui/src/components/ui/table";
 import { ConfirmModal } from "@/shared/components/ConfirmModal";
+import {
+  DataTableShell,
+  ColumnHeader,
+} from "@/shared/components/DataTableShell";
 import {
   useToggleUserStatusMutation,
   useDeleteUserMutation,
@@ -38,6 +35,18 @@ const TABLE_TEXTS = {
     description_text_second: "Hành động này không thể hoàn tác.",
   },
 } as const;
+
+const COLUMNS: ColumnHeader[] = [
+  { key: "name", label: TABLE_TEXTS.headers[0], className: "font-semibold" },
+  { key: "email", label: TABLE_TEXTS.headers[1], className: "font-semibold" },
+  { key: "role", label: TABLE_TEXTS.headers[2], className: "font-semibold" },
+  { key: "status", label: TABLE_TEXTS.headers[3], className: "font-semibold" },
+  {
+    key: "actions",
+    label: TABLE_TEXTS.headers[4],
+    className: "text-right font-semibold",
+  },
+];
 
 const getRoleBadgeClass = (role: UserRole) => {
   switch (role) {
@@ -78,105 +87,86 @@ export const UserTable: React.FC<UserTableProps> = ({
 
   return (
     <>
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {TABLE_TEXTS.headers.map((header, index) => (
-                <TableHead
-                  key={header}
-                  className={index === 4 ? "text-right" : ""}
-                >
-                  {header}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  {TABLE_TEXTS.loading}
-                </TableCell>
-              </TableRow>
-            ) : (
-              users.map((user) => {
-                const isActionAllowed = canManageUser(currentUser, user);
-                const isActive = user.status === "active";
-                const isTogglingThisUser =
-                  toggleStatusMutation.isPending &&
-                  toggleStatusMutation.variables === user.id;
+      <DataTableShell
+        columns={COLUMNS}
+        isLoading={isLoading}
+        isEmpty={users.length === 0}
+      >
+        {users.map((user) => {
+          const isActionAllowed = canManageUser(currentUser, user);
+          const isActive = user.status === "active";
+          const isTogglingThisUser =
+            toggleStatusMutation.isPending &&
+            toggleStatusMutation.variables === user.id;
 
-                return (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.name}{" "}
-                      {currentUser?.id === user.id && (
-                        <span className="text-xs text-muted-foreground">
-                          {TABLE_TEXTS.youTag}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={getRoleBadgeClass(user.role)}
-                      >
-                        {user.role.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-xs font-medium ${
-                          isActive ? "text-green-600" : "text-red-500"
-                        }`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            isActive ? "bg-green-600" : "bg-red-500"
-                          }`}
-                        />
-                        {isActive
-                          ? TABLE_TEXTS.statusActive
-                          : TABLE_TEXTS.statusLocked}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isActionAllowed ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleStatusMutation.mutate(user.id)}
-                            disabled={isTogglingThisUser}
-                          >
-                            {isActive
-                              ? TABLE_TEXTS.actionLock
-                              : TABLE_TEXTS.actionUnlock}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/50"
-                            onClick={() => setUserToDelete(user)}
-                          >
-                            {TABLE_TEXTS.actionDelete}
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          ---
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          return (
+            <TableRow
+              key={user.id}
+              className="hover:bg-muted/30 transition-colors"
+            >
+              <TableCell className="font-medium">
+                {user.name}{" "}
+                {currentUser?.id === user.id && (
+                  <span className="text-xs text-muted-foreground">
+                    {TABLE_TEXTS.youTag}
+                  </span>
+                )}
+              </TableCell>
+              <TableCell>{user.email}</TableCell>
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={getRoleBadgeClass(user.role)}
+                >
+                  {user.role.toUpperCase()}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                    isActive ? "text-green-600" : "text-red-500"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isActive ? "bg-green-600" : "bg-red-500"
+                    }`}
+                  />
+                  {isActive
+                    ? TABLE_TEXTS.statusActive
+                    : TABLE_TEXTS.statusLocked}
+                </span>
+              </TableCell>
+              <TableCell className="text-right">
+                {isActionAllowed ? (
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleStatusMutation.mutate(user.id)}
+                      disabled={isTogglingThisUser}
+                    >
+                      {isActive
+                        ? TABLE_TEXTS.actionLock
+                        : TABLE_TEXTS.actionUnlock}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/50"
+                      onClick={() => setUserToDelete(user)}
+                    >
+                      {TABLE_TEXTS.actionDelete}
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">---</span>
+                )}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </DataTableShell>
 
       {userToDelete && (
         <ConfirmModal

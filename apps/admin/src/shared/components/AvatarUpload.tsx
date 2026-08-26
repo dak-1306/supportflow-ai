@@ -1,5 +1,8 @@
 import React, { useRef } from "react";
 import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { Button } from "@supportflow/ui/src/components/ui/button";
+import { Label } from "@supportflow/ui/src/components/ui/label";
+import { FormAlert } from "@/shared/components/form-alert";
 import { useUploadImageMutation } from "@/shared/hooks/useUpload";
 
 interface AvatarUploadProps {
@@ -14,7 +17,7 @@ const AVATAR_UPLOAD_TEXT = {
   deleteButtonText: "Xóa ảnh",
   acceptedFormatsText: "Chấp nhận PNG, JPG, WEBP (Tối đa 2MB).",
   uploadErrorText: "Tải ảnh thất bại.",
-};
+} as const;
 
 export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,6 +25,7 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    
     if (!file) return;
 
     uploadImageMutation.mutate(file, {
@@ -32,31 +36,33 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
   };
 
   return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-medium text-slate-700">
+    <div className="space-y-2">
+      <Label className="text-xs font-medium">
         {AVATAR_UPLOAD_TEXT.labelText}
-      </label>
+      </Label>
 
       <div className="flex items-center gap-4">
-        <div className="relative w-16 h-16 rounded-full border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
+        {/* Avatar Preview */}
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-border bg-muted flex items-center justify-center">
           {value ? (
             <img
               src={value}
               alt="Avatar"
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
             />
           ) : (
-            <ImageIcon className="w-6 h-6 text-slate-400" />
+            <ImageIcon className="h-6 w-6 text-muted-foreground" />
           )}
 
           {uploadImageMutation.isPending && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <Loader2 className="w-5 h-5 text-white animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           )}
         </div>
 
-        <div className="space-y-2">
+        {/* Action Controls */}
+        <div className="space-y-1.5">
           <input
             ref={fileInputRef}
             type="file"
@@ -67,40 +73,48 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
           />
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadImageMutation.isPending}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              className="h-8 text-xs gap-1.5"
             >
-              <Upload className="w-3.5 h-3.5" />
+              <Upload className="h-3.5 w-3.5" />
               {uploadImageMutation.isPending
                 ? AVATAR_UPLOAD_TEXT.uploadingText
                 : AVATAR_UPLOAD_TEXT.uploadButtonText}
-            </button>
+            </Button>
 
             {value && !uploadImageMutation.isPending && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => onChange("")}
-                className="px-2.5 py-1.5 text-red-600 hover:bg-red-50 text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
+                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive gap-1"
               >
-                <X className="w-3.5 h-3.5" />{" "}
+                <X className="h-3.5 w-3.5" />
                 {AVATAR_UPLOAD_TEXT.deleteButtonText}
-              </button>
+              </Button>
             )}
           </div>
-          <p className="text-[11px] text-slate-400">
+
+          <p className="text-[11px] text-muted-foreground">
             {AVATAR_UPLOAD_TEXT.acceptedFormatsText}
           </p>
         </div>
       </div>
 
       {uploadImageMutation.isError && (
-        <p className="text-xs text-red-500 font-medium">
-          {uploadImageMutation.error.message ||
-            AVATAR_UPLOAD_TEXT.uploadErrorText}
-        </p>
+        <FormAlert
+          type="error"
+          message={
+            uploadImageMutation.error.message ||
+            AVATAR_UPLOAD_TEXT.uploadErrorText
+          }
+        />
       )}
     </div>
   );

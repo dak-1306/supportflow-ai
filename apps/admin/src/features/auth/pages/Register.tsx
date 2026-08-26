@@ -9,6 +9,7 @@ import { AuthLayout } from "@/features/auth/components/AuthLayout";
 import { PasswordField } from "@/shared/components/PasswordField";
 import { FormAlert } from "@/shared/components/form-alert";
 import { getErrorMessage } from "@/shared/utils/error";
+import { Input } from "@supportflow/ui/src/components/ui/input";
 
 const REGISTER_TEXT = {
   title: "Đăng ký tài khoản",
@@ -80,11 +81,11 @@ export default function Register() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <User className="w-4 h-4" />
             </div>
-            <input
+            <Input
               type="text"
               placeholder={REGISTER_TEXT.fullNamePlaceholder}
               {...register("fullName")}
-              className={`w-full pl-9 pr-3 py-2.5 bg-white border text-xs rounded-xl outline-none focus:ring-2 ${
+              className={`pl-9 ${
                 errors.fullName
                   ? "border-red-500 focus:ring-red-200"
                   : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"
@@ -107,11 +108,11 @@ export default function Register() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <Mail className="w-4 h-4" />
             </div>
-            <input
+            <Input  
               type="email"
               placeholder={REGISTER_TEXT.emailPlaceholder}
               {...register("email")}
-              className={`w-full pl-9 pr-3 py-2.5 bg-white border text-xs rounded-xl outline-none focus:ring-2 ${
+              className={`pl-9  ${
                 errors.email
                   ? "border-red-500 focus:ring-red-200"
                   : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"
@@ -134,11 +135,11 @@ export default function Register() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <Building className="w-4 h-4" />
             </div>
-            <input
+            <Input
               type="text"
               placeholder="Acme Inc."
               {...register("workspaceName")}
-              className={`w-full pl-9 pr-3 py-2.5 bg-white border text-xs rounded-xl outline-none focus:ring-2 ${
+              className={`pl-9  ${
                 errors.workspaceName
                   ? "border-red-500 focus:ring-red-200"
                   : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"

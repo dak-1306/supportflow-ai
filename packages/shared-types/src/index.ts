@@ -5,3 +5,4 @@ export * from "./user";
 export * from "./kb";
 export * from "./workspace";
 export * from "./chat.constants";
+export * from "./api";

@@ -1,113 +1,56 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { toast } from "sonner";
+import { tokenStorage } from "../utils/token-storage";
+import { handleRefreshToken } from "./refresh-manager";
+import { ApiErrorResponse } from "@supportflow/shared-types";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
-// Flag và Queue để giải quyết bài toán Race Condition khi Refresh Token
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (token: string) => void;
-  reject: (error: unknown) => void;
-}> = [];
+// Request Interceptor
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = tokenStorage.getAccessToken();
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-const processQueue = (error: unknown, token: string | null = null) => {
-  failedQueue.forEach((promise) => {
-    if (error) {
-      promise.reject(error);
-    } else if (token) {
-      promise.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
-// Request Interceptor: Đính kèm Bearer Token
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem("access_token");
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
-
-// Response Interceptor: Xử lý Refresh Token tuần tự
+// Response Interceptor: Unwrap data & Phân luồng lỗi
 api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
+  (response) => {
+    // UNWRAP DATA: Trả trực tiếp data ra ngoài, loại bỏ .data.data
+    return response.data?.data !== undefined
+      ? response.data.data
+      : response.data;
+  },
+  async (error: AxiosError<ApiErrorResponse>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
-    if (!error.response || !originalRequest) {
-      return Promise.reject(error);
+    const status = error.response?.status;
+
+    // 1. Lỗi Token 401: Tiến hành Refresh Token
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      return handleRefreshToken(originalRequest, api);
     }
 
-    const status = error.response.status;
-
-    // Xử lý Lỗi 401 & Refresh Token
-    if (status === 401 && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem("refresh_token");
-
-      if (!refreshToken) {
-        clearAuthAndRedirect();
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        // Nếu đang có 1 request khác đi refresh, xếp request này vào hàng đợi
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh`,
-          { refreshToken },
-        );
-
-        const { accessToken, refreshToken: newRefreshToken } = res.data.data;
-
-        localStorage.setItem("access_token", accessToken);
-        localStorage.setItem("refresh_token", newRefreshToken);
-
-        api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
-        processQueue(null, accessToken);
-        return api(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        clearAuthAndRedirect();
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
+    // 2. Mất kết nối mạng (Network Error)
+    if (!error.response) {
+      toast.error(
+        "Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng.",
+      );
     }
 
-    return Promise.reject(error);
+    // 3. Reject đối tượng lỗi chuẩn ApiErrorResponse về cho React Query / Form Handler
+    const errorData = error.response?.data;
+    return Promise.reject({
+      status,
+      success: false,
+      message: errorData?.message || error.message || "Đã có lỗi xảy ra",
+    });
   },
 );
-
-function clearAuthAndRedirect() {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  if (window.location.pathname !== "/login") {
-    window.location.href = "/login";
-  }
-}

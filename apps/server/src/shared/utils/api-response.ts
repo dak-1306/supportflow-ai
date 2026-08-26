@@ -1,16 +1,16 @@
-// shared/utils/api-response.ts
-
 import { Response } from "express";
+import { ApiSuccessResponse } from "@supportflow/shared-types";
 
-export const sendSuccess = (
+export const sendSuccess = <T>(
   res: Response,
-  data: unknown,
+  data: T,
   message = "Success",
   status = 200,
 ) => {
-  return res.status(status).json({
+  const responseBody: ApiSuccessResponse<T> = {
     success: true,
     message,
     data,
-  });
+  };
+  return res.status(status).json(responseBody);
 };

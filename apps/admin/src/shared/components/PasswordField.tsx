@@ -1,7 +1,6 @@
 import React, { useState, forwardRef } from "react";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { FieldError } from "react-hook-form";
-// Import các UI component đã xây dựng
 import { Input } from "@supportflow/ui/src/components/ui/input";
 import { Button } from "@supportflow/ui/src/components/ui/button";
 import { Label } from "@supportflow/ui/src/components/ui/label";
@@ -21,19 +20,17 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
           <Label className={error ? "text-destructive" : ""}>{label}</Label>
         )}
 
-        {/* Wrapper relative để định vị icon và nút mắt */}
         <div className="relative flex items-center">
           <Lock className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
 
           <Input
+            {...props}
             ref={ref}
             type={show ? "text" : "password"}
             aria-invalid={!!error}
-            className={`pl-9 pr-10 ${className}`} // pl-9 chừa chỗ cho Lock, pr-10 chừa chỗ cho Eye
-            {...props}
+            className={`pl-9 pr-10 ${className}`}
           />
 
-          {/* Tận dụng Button variant ghost, size icon */}
           <Button
             type="button"
             variant="ghost"

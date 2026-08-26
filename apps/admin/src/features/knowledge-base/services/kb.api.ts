@@ -14,10 +14,10 @@ export const kbApi = {
       `/workspaces/${workspaceId}/documents/upload`,
       formData,
       {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { "Content-Type": undefined },
       },
     );
-    return response.data.data;
+    return response;
   },
 
   getDocuments: async (
@@ -28,7 +28,7 @@ export const kbApi = {
     const response = await api.get(`/workspaces/${workspaceId}/documents`, {
       params: { page, limit },
     });
-    return response.data.data;
+    return response;
   },
 
   deleteDocument: async (
@@ -38,6 +38,6 @@ export const kbApi = {
     const response = await api.delete(
       `/workspaces/${workspaceId}/documents/${documentId}`,
     );
-    return response.data.data;
+    return response;
   },
 };

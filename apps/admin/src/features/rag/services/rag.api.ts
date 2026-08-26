@@ -20,16 +20,7 @@ export interface TestRagPayload {
 
 export const ragApi = {
   testQuery: async (payload: TestRagPayload): Promise<RAGQueryResult> => {
-    try {
-      const response = await api.post("/rag/test", payload);
-      return response.data.data;
-    } catch (error: any) {
-      // Lấy thông báo lỗi chi tiết từ backend nếu có
-      const serverMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Lỗi không xác định từ Server RAG";
-      throw new Error(serverMessage);
-    }
+    const response = await api.post("/rag/test", payload);
+    return response;
   },
 };

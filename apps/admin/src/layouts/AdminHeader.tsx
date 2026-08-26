@@ -44,9 +44,9 @@ export function AdminHeader({
       <div className="flex items-center md:hidden">
         <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
           <SheetTrigger>
-            <button className="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 text-muted-foreground hover:bg-accent">
+            <div className="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 text-muted-foreground hover:bg-accent">
               <Menu className="h-5 w-5" />
-            </button>
+            </div>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64 border-r border-border">
             <AdminSidebar

@@ -12,7 +12,7 @@ export const useLoginMutation = () => {
     mutationFn: (credentials: LoginFormValues) =>
       AuthService.login(credentials),
     onSuccess: (response) => {
-      const { user, accessToken, refreshToken } = response.data;
+      const { user, accessToken, refreshToken } = response;
       setAuth(user, accessToken, refreshToken);
       navigate("/dashboard");
     },
@@ -27,7 +27,7 @@ export const useRegisterMutation = () => {
     mutationFn: (credentials: RegisterFormValues) =>
       AuthService.register(credentials),
     onSuccess: (response) => {
-      const { user, accessToken, refreshToken } = response.data;
+      const { user, accessToken, refreshToken } = response;
       setAuth(user, accessToken, refreshToken);
       navigate("/onboarding");
     },

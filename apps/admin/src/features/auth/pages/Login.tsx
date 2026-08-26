@@ -9,6 +9,7 @@ import { AuthLayout } from "@/features/auth/components/AuthLayout";
 import { PasswordField } from "@/shared/components/PasswordField";
 import { FormAlert } from "@/shared/components/form-alert";
 import { getErrorMessage } from "@/shared/utils/error.ts";
+import { Input } from "@supportflow/ui/src/components/ui/input";
 
 const LOGIN_TEXT = {
   title: "Đăng nhập tài khoản",
@@ -67,11 +68,11 @@ export default function Login() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <Mail className="w-4 h-4" />
             </div>
-            <input
+            <Input
               type="email"
               placeholder={LOGIN_TEXT.emailPlaceholder}
               {...register("email")}
-              className={`w-full pl-9 pr-3 py-2.5 bg-white border text-xs rounded-xl outline-none focus:ring-2 ${
+              className={`pl-9 ${
                 errors.email
                   ? "border-red-500 focus:ring-red-200"
                   : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"

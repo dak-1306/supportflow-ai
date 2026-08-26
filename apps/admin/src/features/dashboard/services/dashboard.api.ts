@@ -6,6 +6,6 @@ export const dashboardApi = {
     workspaceId: string,
   ): Promise<DashboardAnalyticsResponse> => {
     const response = await api.get(`/workspaces/${workspaceId}/analytics`);
-    return response.data.data;
+    return response;
   },
 };

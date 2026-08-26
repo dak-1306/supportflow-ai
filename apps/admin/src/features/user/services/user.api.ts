@@ -1,23 +1,16 @@
+// features/user/services/user.api.ts
 import { api } from "@/shared/services/client";
 import { IUser, CreateUserDto } from "@supportflow/shared-types";
 
 export const userApi = {
-  getUsers: async (): Promise<IUser[]> => {
-    const { data } = await api.get("/users");
-    return data.data;
-  },
+  getUsers: (): Promise<IUser[]> => api.get<IUser[]>("/users"),
 
-  createUser: async (payload: CreateUserDto): Promise<IUser> => {
-    const { data } = await api.post("/users", payload);
-    return data.data;
-  },
+  createUser: (payload: CreateUserDto): Promise<IUser> =>
+    api.post<IUser>("/users", payload),
 
-  toggleStatus: async (userId: string): Promise<IUser> => {
-    const { data } = await api.patch(`/users/${userId}/toggle-status`);
-    return data.data;
-  },
+  toggleStatus: (userId: string): Promise<IUser> =>
+    api.patch<IUser>(`/users/${userId}/toggle-status`),
 
-  deleteUser: async (userId: string): Promise<void> => {
-    await api.delete(`/users/${userId}`);
-  },
+  deleteUser: (userId: string): Promise<void> =>
+    api.delete<void>(`/users/${userId}`),
 };

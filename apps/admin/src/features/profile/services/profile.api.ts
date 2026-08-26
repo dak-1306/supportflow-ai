@@ -17,7 +17,7 @@ export const profileApi = {
    */
   updateProfile: async (payload: UpdateProfileDto): Promise<IUser> => {
     const response = await api.patch("/users/me", payload);
-    return response.data.data;
+    return response;
   },
 
   /**

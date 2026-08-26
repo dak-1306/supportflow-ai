@@ -13,14 +13,14 @@ export const adminChatApi = {
     const response = await api.get(
       `/admin/conversations?status=${status}&page=${page}&limit=${limit}`,
     );
-    return response.data.data;
+    return response;
   },
 
   getMessages: async (conversationId: string, page = 1, limit = 50) => {
     const response = await api.get(
       `/admin/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
     );
-    return response.data.data;
+    return response;
   },
 
   sendMessage: async (conversationId: string, message: string) => {
@@ -28,27 +28,27 @@ export const adminChatApi = {
       `/admin/conversations/${conversationId}/messages`,
       { message },
     );
-    return response.data.data;
+    return response;
   },
 
   takeOverConversation: async (conversationId: string) => {
     const response = await api.patch(
       `/admin/conversations/${conversationId}/take-over`,
     );
-    return response.data.data;
+    return response;
   },
 
   resolveConversation: async (conversationId: string) => {
     const response = await api.patch(
       `/admin/conversations/${conversationId}/resolve`,
     );
-    return response.data.data;
+    return response;
   },
 
   enableAI: async (conversationId: string) => {
     const response = await api.patch(
       `/admin/conversations/${conversationId}/enable-ai`,
     );
-    return response.data.data;
+    return response;
   },
 };

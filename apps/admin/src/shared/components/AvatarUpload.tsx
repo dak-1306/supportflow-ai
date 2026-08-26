@@ -6,12 +6,12 @@ import { FormAlert } from "@/shared/components/form-alert";
 import { useUploadImageMutation } from "@/shared/hooks/useUpload";
 
 interface AvatarUploadProps {
+  label?: string;
   value?: string;
   onChange: (url: string) => void;
 }
 
 const AVATAR_UPLOAD_TEXT = {
-  labelText: "Ảnh đại diện",
   uploadButtonText: "Tải ảnh mới",
   uploadingText: "Đang tải...",
   deleteButtonText: "Xóa ảnh",
@@ -19,13 +19,13 @@ const AVATAR_UPLOAD_TEXT = {
   uploadErrorText: "Tải ảnh thất bại.",
 } as const;
 
-export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
+export function AvatarUpload({ label, value, onChange }: AvatarUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadImageMutation = useUploadImageMutation();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    
+
     if (!file) return;
 
     uploadImageMutation.mutate(file, {
@@ -37,9 +37,7 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-medium">
-        {AVATAR_UPLOAD_TEXT.labelText}
-      </Label>
+      <Label className="text-xs font-medium">{label || ""}</Label>
 
       <div className="flex items-center gap-4">
         {/* Avatar Preview */}

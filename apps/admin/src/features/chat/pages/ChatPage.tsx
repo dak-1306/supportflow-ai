@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SidebarConversations } from "@/features/chat/components/SidebarConversations";
-import { ChatWindow } from "@/features/chat/components/ChatWindow";
+import { SidebarConversations } from "@/features/chat/components/conversations/SidebarConversations";
+import { ChatWindow } from "@/features/chat/components/messages/ChatWindow";
 import { useAdminChatStore } from "@/features/chat/stores/chat.store";
 
 export default function ChatPage() {

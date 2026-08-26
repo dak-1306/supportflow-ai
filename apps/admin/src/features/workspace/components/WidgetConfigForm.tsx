@@ -1,8 +1,11 @@
-import React, { useRef } from "react";
+// features/workspace/components/WidgetConfigForm.tsx
+import React from "react";
+import { Label } from "@supportflow/ui/src/components/ui/label";
+import { Input } from "@supportflow/ui/src/components/ui/input";
+import { Textarea } from "@supportflow/ui/src/components/ui/textarea"; // Thêm component Textarea
 import { IWorkspaceWidgetConfig } from "@supportflow/shared-types";
 import { WidgetPreview } from "./WidgetPreview";
-import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
-import { useUploadImageMutation } from "@/shared/hooks/useUpload"; // 🟢 Import Hook
+import { AvatarUpload } from "@/shared/components/AvatarUpload";
 
 interface WidgetConfigFormProps {
   value: IWorkspaceWidgetConfig;
@@ -13,174 +16,85 @@ export const WidgetConfigForm: React.FC<WidgetConfigFormProps> = ({
   value,
   onChange,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 🟢 Dùng Mutation Hook từ React Query
-  const uploadImageMutation = useUploadImageMutation();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    console.log("Uploading file:", file);
-    uploadImageMutation.mutate(file, {
-      onSuccess: (data) => {
-        // Tự động cập nhật URL vào State cha
-        onChange({
-          ...value,
-          botAvatar: data.url,
-        });
-      },
-    });
-
-    // Reset input
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleRemoveAvatar = () => {
-    onChange({ ...value, botAvatar: "" });
+  const updateField = (key: keyof IWorkspaceWidgetConfig, val: string) => {
+    onChange({ ...value, [key]: val });
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 space-y-4 bg-white p-6 rounded-xl border">
-        {/* Tiêu đề & Tên Bot */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Tiêu đề khung chat
-          </label>
-          <input
-            type="text"
-            className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+      {/* Tăng space-y-4 lên space-y-6 để UI thoáng và dễ nhìn hơn */}
+      <div className="lg:col-span-2 space-y-6 bg-white p-6 rounded-xl border shadow-sm">
+        <div className="space-y-2">
+          <Label htmlFor="title">Tiêu đề khung chat</Label>
+          <Input
+            id="title"
             value={value.title}
-            onChange={(e) => onChange({ ...value, title: e.target.value })}
+            onChange={(e) => updateField("title", e.target.value)}
+            placeholder="Ví dụ: Hỗ trợ trực tuyến"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Tên Bot hiển thị
-          </label>
-          <input
-            type="text"
-            className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+        <div className="space-y-2">
+          <Label htmlFor="botName">Tên Bot hiển thị</Label>
+          <Input
+            id="botName"
             value={value.botName}
-            onChange={(e) => onChange({ ...value, botName: e.target.value })}
+            onChange={(e) => updateField("botName", e.target.value)}
+            placeholder="Ví dụ: SupportBot"
           />
         </div>
 
-        {/* Upload Avatar Bot Component */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Avatar AI Bot
-          </label>
-
-          <div className="flex items-center gap-4">
-            <div className="relative w-16 h-16 rounded-full border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
-              {value.botAvatar ? (
-                <img
-                  src={value.botAvatar}
-                  alt="Bot Avatar"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <ImageIcon className="w-6 h-6 text-slate-400" />
-              )}
-
-              {/* isPending tự động được cung cấp bởi React Query */}
-              {uploadImageMutation.isPending && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 text-white animate-spin" />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png, image/jpeg, image/webp"
-                className="hidden"
-                onChange={handleFileChange}
-                disabled={uploadImageMutation.isPending}
-              />
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadImageMutation.isPending}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  {uploadImageMutation.isPending
-                    ? "Đang tải..."
-                    : "Tải ảnh mới"}
-                </button>
-
-                {value.botAvatar && !uploadImageMutation.isPending && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveAvatar}
-                    className="px-2.5 py-1.5 text-red-600 hover:bg-red-50 text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
-                  >
-                    <X className="w-3.5 h-3.5" /> Xóa ảnh
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-slate-400">
-                Chấp nhận PNG, JPG, WEBP (Tối đa 2MB).
-              </p>
-            </div>
-          </div>
-
-          {/* Render error từ React Query */}
-          {uploadImageMutation.isError && (
-            <p className="mt-1.5 text-xs text-red-500 font-medium">
-              {uploadImageMutation.error.message || "Tải ảnh thất bại."}
-            </p>
-          )}
+        <div className="space-y-2">
+          <Label>Avatar AI Bot</Label>
+          <AvatarUpload
+            value={value.botAvatar}
+            onChange={(url) => updateField("botAvatar", url)}
+          />
         </div>
 
-        {/* Primary Color & Welcome Message */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Màu chủ đạo (Primary Color)
-          </label>
+        <div className="space-y-2">
+          <Label htmlFor="primaryColor">Màu chủ đạo (Primary Color)</Label>
           <div className="flex items-center gap-3">
-            <input
-              type="color"
-              className="w-10 h-10 border rounded cursor-pointer p-0.5"
+            {/* Tinh chỉnh UX cho Color Picker */}
+            <div className="relative h-10 w-14 overflow-hidden rounded-md border shadow-sm cursor-pointer">
+              <input
+                id="primaryColor"
+                type="color"
+                className="absolute -top-2 -left-2 h-16 w-16 cursor-pointer border-0 p-0"
+                value={value.primaryColor}
+                onChange={(e) => updateField("primaryColor", e.target.value)}
+              />
+            </div>
+            <Input
+              type="text"
+              className="w-32 font-mono text-sm uppercase"
               value={value.primaryColor}
-              onChange={(e) =>
-                onChange({ ...value, primaryColor: e.target.value })
-              }
+              onChange={(e) => updateField("primaryColor", e.target.value)}
             />
-            <span className="text-sm font-mono text-slate-600">
-              {value.primaryColor}
-            </span>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Lời chào mặc định
-          </label>
-          <textarea
+        <div className="space-y-2">
+          <Label htmlFor="welcomeMessage">Lời chào mặc định</Label>
+          <Textarea
+            id="welcomeMessage"
             rows={3}
-            className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             value={value.welcomeMessage}
-            onChange={(e) =>
-              onChange({ ...value, welcomeMessage: e.target.value })
-            }
+            onChange={(e) => updateField("welcomeMessage", e.target.value)}
+            placeholder="Nhập lời chào khi khách hàng mở khung chat..."
+            className="resize-none"
           />
         </div>
       </div>
 
       <div className="flex flex-col items-center">
-        <h3 className="text-sm font-medium text-slate-600 mb-3">
-          Xem trước giao diện Real-time
+        <h3 className="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wide">
+          Xem trước giao diện
         </h3>
-        <WidgetPreview config={value} />
+        {/* Có thể thêm wrapper mô phỏng khung điện thoại ở đây nếu WidgetPreview chưa có */}
+        <div className="sticky top-6">
+          <WidgetPreview config={value} />
+        </div>
       </div>
     </div>
   );

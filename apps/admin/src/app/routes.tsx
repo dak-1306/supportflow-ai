@@ -1,155 +1,92 @@
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuthStore } from "@/stores/auth.store";
-import Login from "@/features/auth/pages/Login";
-import ChatPage from "@/features/chat/pages/ChatPage";
-import { KnowledgeBasePage } from "@/features/knowledge-base/pages/kb-page";
-import RagTestPage from "@/features/rag/pages/RagTestPage";
-import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
-import { UserManagementPage } from "@/features/user/pages/UserManagementPage";
+import { lazy, Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
 
+import { ProtectedRoute, PublicRoute, RootRedirect } from "./guards";
 import AdminLayout from "@/layouts/AdminLayout";
-import { WorkspaceSettingsPage } from "@/features/workspace/pages/WorkspaceSettingsPage";
-import { ProfilePage } from "@/features/profile/pages/ProfilePage";
-import Register from "@/features/auth/pages/Register";
-import OnboardingPage from "@/features/workspace/pages/OnboardingPage";
-import NotFoundPage from "@/features/errors/pages/NotFoundPage";
-import ServerErrorPage from "@/features/errors/pages/ServerErrorPage";
 
-// Nâng cấp ProtectedRoute hỗ trợ kiểm tra Role
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  allowedRoles?: ("owner" | "admin" | "agent")[];
-}
+// 🟢 Lazy Loading Pages
+const Login = lazy(() => import("@/features/auth/pages/Login"));
+const Register = lazy(() => import("@/features/auth/pages/Register"));
+const OnboardingPage = lazy(
+  () => import("@/features/workspace/pages/OnboardingPage"),
+);
 
-function RootRedirect() {
-  const { isAuthenticated, user } = useAuthStore((state) => ({
-    isAuthenticated: state.isAuthenticated,
-    user: state.user,
-  }));
+const DashboardPage = lazy(() =>
+  import("@/features/dashboard/pages/DashboardPage").then((m) => ({
+    default: m.DashboardPage,
+  })),
+);
+const UserManagementPage = lazy(() =>
+  import("@/features/user/pages/UserManagementPage").then((m) => ({
+    default: m.UserManagementPage,
+  })),
+);
+const ChatPage = lazy(() => import("@/features/chat/pages/ChatPage"));
+const KnowledgeBasePage = lazy(() =>
+  import("@/features/knowledge-base/pages/kb-page").then((m) => ({
+    default: m.KnowledgeBasePage,
+  })),
+);
+const RagTestPage = lazy(() => import("@/features/rag/pages/RagTestPage"));
+const WorkspaceSettingsPage = lazy(() =>
+  import("@/features/workspace/pages/WorkspaceSettingsPage").then((m) => ({
+    default: m.WorkspaceSettingsPage,
+  })),
+);
+const ProfilePage = lazy(() =>
+  import("@/features/profile/pages/ProfilePage").then((m) => ({
+    default: m.ProfilePage,
+  })),
+);
 
-  // 1. Chưa đăng nhập -> Chuyển hướng sang Login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // 2. Nếu là Agent -> Chuyển thẳng tới trang Chat (nơi làm việc chính)
-  if (user?.role === "agent") {
-    return <Navigate to="/chat" replace />;
-  }
-
-  // 3. Nếu là Owner / Admin -> Chuyển tới Dashboard
-  return <Navigate to="/dashboard" replace />;
-}
-
-function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAuthStore((state) => ({
-    isAuthenticated: state.isAuthenticated,
-    user: state.user,
-  }));
-
-  // 1. Chưa đăng nhập -> Chuyển hướng về trang Login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // 2. Đã đăng nhập nhưng Role không nằm trong danh sách được phép -> Chuyển về trang Chat
-  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/chat" replace />;
-  }
-
-  return <>{children}</>;
-}
+const NotFoundPage = lazy(() => import("@/features/errors/pages/NotFoundPage"));
+const ServerErrorPage = lazy(
+  () => import("@/features/errors/pages/ServerErrorPage"),
+);
 
 export default function AppRoutes() {
   return (
-    <Routes>
-      {/* Route gốc điều hướng thông minh */}
-      <Route path="/" element={<RootRedirect />} />
-      {/* Route công khai */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/onboarding" element={<OnboardingPage />} />
+    <Suspense>
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
 
-      {/* Các Route Admin bọc trong AdminLayout */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={["owner", "admin"]}>
-            <AdminLayout>
-              <DashboardPage />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/team"
-        element={
-          <ProtectedRoute allowedRoles={["owner", "admin"]}>
-            <AdminLayout>
-              <UserManagementPage />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          <ProtectedRoute allowedRoles={["owner", "admin", "agent"]}>
-            <AdminLayout>
-              <ChatPage />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
+        {/* 🟢 Guest Routes: Đã login sẽ tự redirect về / */}
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Route>
 
-      <Route
-        path="/knowledge-base"
-        element={
-          <ProtectedRoute allowedRoles={["owner", "admin"]}>
-            <AdminLayout>
-              <KnowledgeBasePage />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+        </Route>
 
-      <Route
-        path="/rag-test"
-        element={
-          <ProtectedRoute allowedRoles={["owner", "admin"]}>
-            <AdminLayout>
-              <RagTestPage />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
+        {/* 🟢 Protected Admin Layout Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AdminLayout />}>
+            {/* Tất cả Role */}
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
 
-      <Route
-        path="/workspace-settings"
-        element={
-          <ProtectedRoute allowedRoles={["owner", "admin"]}>
-            <AdminLayout>
-              <WorkspaceSettingsPage />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
+            {/* Chỉ Owner & Admin */}
+            <Route
+              element={<ProtectedRoute allowedRoles={["owner", "admin"]} />}
+            >
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/team" element={<UserManagementPage />} />
+              <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+              <Route path="/rag-test" element={<RagTestPage />} />
+              <Route
+                path="/workspace-settings"
+                element={<WorkspaceSettingsPage />}
+              />
+            </Route>
+          </Route>
+        </Route>
 
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute allowedRoles={["owner", "admin", "agent"]}>
-            <AdminLayout>
-              <ProfilePage />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Error Pages */}
-      <Route path="/500" element={<ServerErrorPage />} />
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        {/* Error Pages */}
+        <Route path="/500" element={<ServerErrorPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
   );
 }

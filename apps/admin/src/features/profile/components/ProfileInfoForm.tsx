@@ -5,6 +5,8 @@ import { useUpdateProfileMutation } from "@/features/profile/hooks/useProfile";
 import { FormAlert } from "@/shared/components/form-alert";
 import { AvatarUpload } from "@/shared/components/AvatarUpload";
 import { Button } from "@supportflow/ui/src/components/ui/button";
+import { Input } from "@supportflow/ui/src/components/ui/input";
+import { Label } from "@supportflow/ui/src/components/ui/label";
 import { useAuthStore } from "@/stores/auth.store";
 import { getErrorMessage } from "@/shared/utils/error";
 
@@ -75,26 +77,17 @@ export const ProfileInfoForm: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            {PROFILE_INFO_TEXTS.emailLabel}
-          </label>
-          <input
-            type="email"
-            disabled
-            value={user?.email || ""}
-            className="w-full bg-slate-50 border rounded-lg p-2.5 text-xs text-slate-500 cursor-not-allowed"
-          />
+        <div className="space-y-2">
+          <Label>{PROFILE_INFO_TEXTS.emailLabel}</Label>
+          <Input type="email" disabled value={user?.email || ""} />
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            {PROFILE_INFO_TEXTS.nameLabel}
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label>{PROFILE_INFO_TEXTS.nameLabel}</Label>
+          <Input
             type="text"
             {...register("name", { required: true })}
-            className="w-full border rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+            value={user?.name || ""}
           />
         </div>
 
@@ -103,7 +96,11 @@ export const ProfileInfoForm: React.FC = () => {
           name="avatar"
           control={control}
           render={({ field }) => (
-            <AvatarUpload value={field.value} onChange={field.onChange} />
+            <AvatarUpload
+              label={PROFILE_INFO_TEXTS.avatarLabel}
+              value={field.value}
+              onChange={field.onChange}
+            />
           )}
         />
 

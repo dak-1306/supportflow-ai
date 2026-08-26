@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { RoleBadge } from "@/features/profile/components/ProfileBadge";
 import { ProfileInfoForm } from "@/features/profile/components/ProfileInfoForm";
 import { ChangePasswordForm } from "@/features/profile/components/ChangePasswordForm";
+import { formatDateTime } from "@/shared/utils/date.util";
 
 const PROFILE_PAGE_TEXTS = {
   loadingMessage: "Đang tải thông tin cá nhân...",
@@ -54,9 +55,7 @@ export const ProfilePage: React.FC = () => {
             </span>
             <span>
               {PROFILE_PAGE_TEXTS.lastLoginLabel}:{" "}
-              {user.lastLogin
-                ? new Date(user.lastLogin).toLocaleString("vi-VN")
-                : "N/A"}
+              {formatDateTime(user.lastLogin)}
             </span>
           </div>
         </div>
